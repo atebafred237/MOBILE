@@ -9,6 +9,7 @@ import { useLanguage } from '../context/LanguageContext';
 const SignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -31,9 +32,17 @@ const SignIn = () => {
   }, []);
 
   const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter your email and password.');
+      return;
+    }
+    setError('');
     setLoading(true);
-    await login(email, password);
+    const result = await login(email.trim(), password);
     setLoading(false);
+    if (!result.success) {
+      setError(result.error || 'Login failed. Please try again.');
+    }
   };
 
   const handleForgotPassword = () => {
@@ -100,6 +109,10 @@ const SignIn = () => {
               <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
             </TouchableOpacity>
           </View>
+
+          {error ? (
+            <Text style={styles.errorText}>{error}</Text>
+          ) : null}
 
           <TouchableOpacity
             style={styles.button}
@@ -256,6 +269,12 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  errorText: {
+    color: colors.danger,
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 8,
   },
 });
 
