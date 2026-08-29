@@ -8,7 +8,33 @@ const STATUS_OPTIONS = ['All Statuses', 'Present', 'Late', 'Absent'];
 const WEEKDAYS = ['All Days', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 const AdminAttendance = () => {
-	const { attendance } = useData();
+	const { attendance: rawAttendance } = useData();
+	const attendance = React.useMemo(() => {
+		return rawAttendance.map(a => {
+			const checkInDate = a.timeIn ? new Date(a.timeIn) : null;
+			const checkOutDate = a.timeOut ? new Date(a.timeOut) : null;
+			const formatTime = d => d ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '---';
+
+			let totalHours = '0h';
+			if (checkInDate && checkOutDate) {
+				const diffMs = checkOutDate - checkInDate;
+				const diffHrs = Math.floor(diffMs / 3600000);
+				const diffMins = Math.floor((diffMs % 3600000) / 60000);
+				totalHours = `${diffHrs}h ${diffMins}m`;
+			}
+
+			return {
+				...a,
+				status: a.status ? (a.status.charAt(0).toUpperCase() + a.status.slice(1)) : 'Absent',
+				timestamp: formatTime(checkInDate),
+				checkOut: formatTime(checkOutDate),
+				totalHours,
+				authMethod: a.method || 'Facial Recognition',
+				location: a.location || 'Main Office',
+				avatar: a.avatar || `https://i.pravatar.cc/150?u=${a.name || a.employeeId}`,
+			};
+		});
+	}, [rawAttendance]);
 	const [status, setStatus] = useState('All Statuses');
 	const [selectedDay, setSelectedDay] = useState('All Days');
 	const [searchText, setSearchText] = useState('');
