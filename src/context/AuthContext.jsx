@@ -140,6 +140,7 @@ function mapUser(apiUser, token) {
     matricule:  apiUser.employee_code ?? null,
     department: apiUser.department ?? null,
     position:   apiUser.position ?? null,
+    phone:      apiUser.phone ?? null,
     token,
   };
 }
