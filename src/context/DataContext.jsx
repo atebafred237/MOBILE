@@ -35,12 +35,14 @@ export const DataProvider = ({ children }) => {
             setEmployees(raw.map(e => ({
               id:         e.id,
               name:       e.full_name,
-              email:      e.email,
+              role:       e.position ?? 'Staff',
+              email:      e.user?.email ?? e.email ?? '',
+              phone:      e.phone ?? '',
               department: e.department ?? '',
               position:   e.position ?? '',
               matricule:  e.employee_code ?? '',
-              avatar:     e.profile_image ?? `https://i.pravatar.cc/150?u=${e.email}`,
-              status:     e.status ?? 'active',
+              avatar:     e.profile_image ?? e.user?.profile_image ?? `https://i.pravatar.cc/150?u=${e.user?.email || e.id}`,
+              status:     e.status === 'active' ? 'Active' : 'Inactive',
             })));
           } else {
             console.warn('Employees fetch failed:', empRes.status);

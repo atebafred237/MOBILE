@@ -104,20 +104,77 @@ export const AuthProvider = ({ children }) => {
   };
 
   /* ─── Profile helpers ─── */
-  const updateProfilePicture = async (base64Image) => {
-    await AsyncStorage.setItem('profile_picture', base64Image);
-    if (user) {
-      const updated = { ...user, avatar: base64Image };
-      setUser(updated);
-      await AsyncStorage.setItem(USER_KEY, JSON.stringify(updated));
+  const updateProfilePicture = async (uri) => {
+    if (!user || !token) return;
+    try {
+      const filename = uri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image`;
+
+      const formData = new FormData();
+      formData.append('avatar', { uri, name: filename, type });
+
+      const res = await fetch(`${API_BASE_URL}/users/me/avatar`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const mapped = mapUser(json.data, token);
+        setUser(mapped);
+        await AsyncStorage.setItem(USER_KEY, JSON.stringify(mapped));
+      } else {
+        console.warn('Avatar update failed', await res.text());
+        fallbackAvatarUpdate(uri);
+      }
+    } catch (e) {
+      console.warn('Avatar upload error', e);
+      fallbackAvatarUpdate(uri);
     }
   };
 
-  const updateProfile = async (changes) => {
-    if (!user) return;
-    const updated = { ...user, ...changes };
+  const fallbackAvatarUpdate = async (uri) => {
+    const updated = { ...user, avatar: uri };
     setUser(updated);
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(updated));
+  };
+
+  const updateProfile = async (changes) => {
+    if (!user || !token) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/users/me/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json'
+        },
+        body: JSON.stringify(changes)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const mapped = mapUser(json.data, token);
+        setUser(mapped);
+        await AsyncStorage.setItem(USER_KEY, JSON.stringify(mapped));
+      } else {
+        console.warn('Profile update failed', await res.text());
+        // Fallback to local update
+        const updated = { ...user, ...changes };
+        setUser(updated);
+        await AsyncStorage.setItem(USER_KEY, JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.warn('Profile update error', e);
+      const updated = { ...user, ...changes };
+      setUser(updated);
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(updated));
+    }
   };
 
   return (
