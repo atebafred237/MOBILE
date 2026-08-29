@@ -11,17 +11,9 @@ const EmployeeProfile = () => {
   const { user, updateProfile, updateProfilePicture } = useAuth();
   const { t } = useLanguage();
   const { isDark } = useTheme();
-  const profile = user || {
-    name: 'Employee',
-    email: 'employee@example.com',
-    department: 'General',
-    position: 'Staff member',
-    matricule: 'EMP-0001',
-    phone: '+237 690 12 34 56',
-    avatar: 'https://i.pravatar.cc/150?u=employee',
-  };
-  const [email, setEmail] = useState(profile.email);
-  const [phone, setPhone] = useState(profile.phone || '+237 690 12 34 56');
+  
+  const [email, setEmail] = useState(user?.email || '');
+  const [phone, setPhone] = useState(user?.phone || '');
   const [editing, setEditing] = useState(null);
 
   const pickProfilePicture = async () => {
@@ -55,15 +47,15 @@ const EmployeeProfile = () => {
       <View style={styles.cover}>
         <View style={styles.avatarWrap}>
           <View style={styles.avatarRing}>
-            <Image source={{ uri: profile.avatar }} style={styles.avatar} />
+            <Image source={{ uri: user?.avatar }} style={styles.avatar} />
           </View>
           <TouchableOpacity style={styles.cameraButton} onPress={pickProfilePicture} accessibilityLabel="Change profile picture">
             <Camera size={18} color={colors.white} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.name}>{profile.name}</Text>
+        <Text style={styles.name}>{user?.name || 'Employee'}</Text>
         <View style={styles.statusPill}><View style={styles.statusDot} /><Text style={styles.status}>{t('available')}</Text></View>
-        <Text style={styles.role}>{profile.position}  ·  {profile.department}</Text>
+        <Text style={styles.role}>{user?.position || 'Staff member'}  ·  {user?.department || 'General'}</Text>
       </View>
 
       <View style={[styles.infoCard, isDark && styles.darkCard]}>
@@ -72,7 +64,7 @@ const EmployeeProfile = () => {
           <Mail size={21} color={colors.slate[600]} />
           <View style={styles.infoCopy}>
             <Text style={styles.infoLabel}>{t('email')}</Text>
-            {editing === 'email' ? <TextInput style={styles.editInput} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoFocus /> : <Text style={styles.infoValue}>{email}</Text>}
+            {editing === 'email' ? <TextInput style={styles.editInput} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoFocus /> : <Text style={styles.infoValue}>{email || 'Not set'}</Text>}
           </View>
           {renderEditAction('email')}
         </View>
@@ -80,7 +72,7 @@ const EmployeeProfile = () => {
           <Phone size={21} color={colors.slate[600]} />
           <View style={styles.infoCopy}>
             <Text style={styles.infoLabel}>{t('phone')}</Text>
-            {editing === 'phone' ? <TextInput style={styles.editInput} value={phone} onChangeText={setPhone} keyboardType="phone-pad" autoFocus /> : <Text style={styles.infoValue}>{phone}</Text>}
+            {editing === 'phone' ? <TextInput style={styles.editInput} value={phone} onChangeText={setPhone} keyboardType="phone-pad" autoFocus /> : <Text style={styles.infoValue}>{phone || 'Not set'}</Text>}
           </View>
           {renderEditAction('phone')}
         </View>
@@ -88,7 +80,7 @@ const EmployeeProfile = () => {
           <MapPin size={21} color={colors.slate[600]} />
           <View style={styles.infoCopy}>
             <Text style={styles.infoLabel}>{t('department')}</Text>
-            <Text style={styles.infoValue}>{profile.department}</Text>
+            <Text style={styles.infoValue}>{user?.department || 'Not assigned'}</Text>
           </View>
         </View>
       </View>
@@ -99,14 +91,14 @@ const EmployeeProfile = () => {
           <UserRound size={21} color={colors.slate[600]} />
           <View style={styles.infoCopy}>
             <Text style={styles.infoLabel}>{t('position')}</Text>
-            <Text style={styles.infoValue}>{profile.position}</Text>
+            <Text style={styles.infoValue}>{user?.position || 'Not assigned'}</Text>
           </View>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.idIcon}>#</Text>
           <View style={styles.infoCopy}>
             <Text style={styles.infoLabel}>{t('employeeId')}</Text>
-            <Text style={styles.infoValue}>{profile.matricule}</Text>
+            <Text style={styles.infoValue}>{user?.matricule || 'Not assigned'}</Text>
           </View>
         </View>
       </View>

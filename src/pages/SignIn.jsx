@@ -10,6 +10,15 @@ const SignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+
+  // Auto-dismiss error after 4 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(''), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -66,13 +75,20 @@ const SignIn = () => {
           <Text style={styles.title}>{t('welcomeBack')}</Text>
           <Text style={styles.subtitle}>{t('credentialsSubtitle')}</Text>
 
+          {/* ── Inline error box above email ── */}
+          {error ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorBoxText}>{error}</Text>
+            </View>
+          ) : null}
+
           <View style={styles.formGroup}>
             <Text style={styles.label}>{t('emailAddress')}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, error && styles.inputError]}
               placeholder="admin@example.com"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(v) => { setEmail(v); if (error) setError(''); }}
               autoCapitalize="none"
               keyboardType="email-address"
             />
@@ -82,11 +98,11 @@ const SignIn = () => {
             <Text style={styles.label}>{t('password')}</Text>
             <View style={styles.passwordWrap}>
               <TextInput
-                style={styles.inputWithIcon}
+                style={[styles.inputWithIcon, error && styles.inputError]}
                 placeholder="••••••••"
                 secureTextEntry={!showPassword}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(v) => { setPassword(v); if (error) setError(''); }}
               />
               <TouchableOpacity
                 style={styles.eyeButton}
@@ -110,10 +126,6 @@ const SignIn = () => {
             </TouchableOpacity>
           </View>
 
-          {error ? (
-            <Text style={styles.errorText}>{error}</Text>
-          ) : null}
-
           <TouchableOpacity
             style={styles.button}
             onPress={handleLogin}
@@ -134,7 +146,6 @@ const SignIn = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.slate[50],
     justifyContent: 'center',
     padding: spacing.md,
   },
@@ -270,11 +281,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  errorText: {
-    color: colors.danger,
-    fontSize: 13,
-    textAlign: 'center',
-    marginBottom: 8,
+  errorBox: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#EF4444',
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginBottom: spacing.sm,
+  },
+  errorBoxText: {
+    color: '#991B1B',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  inputError: {
+    borderColor: '#EF4444',
   },
 });
 
