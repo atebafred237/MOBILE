@@ -263,9 +263,9 @@ const AdminEmployees = () => {
       </Modal>
 
       {/* Custom Action Dialog */}
-      <Modal visible={dialog.visible} animationType="fade" transparent={true} onRequestClose={closeDialog}>
-        <View style={styles.dialogBackdrop}>
-          <View style={styles.dialogCard}>
+      <Modal visible={dialog.visible} animationType="none" transparent={true} onRequestClose={closeDialog}>
+        <TouchableOpacity style={styles.dialogBackdrop} activeOpacity={1} onPress={closeDialog}>
+          <TouchableOpacity style={styles.dialogCard} activeOpacity={1}>
             <Text style={styles.dialogTitle}>{dialog.title}</Text>
             <Text style={styles.dialogMessage}>{dialog.message}</Text>
             
@@ -290,8 +290,8 @@ const AdminEmployees = () => {
                 <Text style={styles.dialogActionText}>{dialog.actionText}</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -665,50 +665,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
-  cameraContainer: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  camera: {
-    flex: 1,
-  },
-  cameraOverlay: {
-    flex: 1,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing.xl,
-    paddingTop: 60,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  cameraCloseBtn: {
-    alignSelf: 'flex-end',
-    padding: 8,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 20,
-  },
-  faceOutline: {
-    width: 250,
-    height: 350,
-    borderWidth: 2,
-    borderColor: colors.pink[800],
-    borderRadius: 125,
-    borderStyle: 'dashed',
-  },
-  captureBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 40,
-  },
-  captureBtnInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.white,
-  },
+
 });
 
 export default AdminEmployees;
