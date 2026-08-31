@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const saved = await AsyncStorage.getItem('presencehub_user');
+        const saved = await AsyncStorage.getItem('Presenza_user');
         if (saved) setUser(JSON.parse(saved));
       } catch (e) {
         console.error(e);
@@ -42,6 +42,13 @@ export const AuthProvider = ({ children }) => {
         position: 'Senior Developer',
         avatar: savedPic || 'https://i.pravatar.cc/150?u=sarah'
       };
+    } else if (email === 'kiosk@attendance.com') {
+      loggedInUser = {
+        name: 'Shared Kiosk',
+        email,
+        role: 'kiosk',
+        avatar: savedPic || 'https://i.pravatar.cc/150?u=kiosk'
+      };
     } else {
       loggedInUser = {
         name: email.includes('admin') ? 'Administrator' : 'Test Employee',
@@ -55,7 +62,7 @@ export const AuthProvider = ({ children }) => {
     }
     
     setUser(loggedInUser);
-    await AsyncStorage.setItem('presencehub_user', JSON.stringify(loggedInUser));
+    await AsyncStorage.setItem('Presenza_user', JSON.stringify(loggedInUser));
     return { success: true, role: loggedInUser.role };
   };
 
@@ -64,7 +71,7 @@ export const AuthProvider = ({ children }) => {
     if (user) {
       const updatedUser = { ...user, avatar: base64Image };
       setUser(updatedUser);
-      await AsyncStorage.setItem('presencehub_user', JSON.stringify(updatedUser));
+      await AsyncStorage.setItem('Presenza_user', JSON.stringify(updatedUser));
     }
   };
 
@@ -72,12 +79,12 @@ export const AuthProvider = ({ children }) => {
     if (!user) return;
     const updatedUser = { ...user, ...changes };
     setUser(updatedUser);
-    await AsyncStorage.setItem('presencehub_user', JSON.stringify(updatedUser));
+    await AsyncStorage.setItem('Presenza_user', JSON.stringify(updatedUser));
   };
 
   const logout = async () => {
     setUser(null);
-    await AsyncStorage.removeItem('presencehub_user');
+    await AsyncStorage.removeItem('Presenza_user');
   };
 
   return (

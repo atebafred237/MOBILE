@@ -13,8 +13,8 @@ const SETTINGS_OPTIONS = [
 	{ key: 'notifications', title: 'Notifications', description: 'Control alerts and attendance activity updates.', icon: Bell, color: colors.orange[600], background: colors.orange[50] },
 	{ key: 'account', title: 'Account', description: 'Manage your profile, login, and account preferences.', icon: UserRound, color: colors.primary[600], background: colors.primary[50] },
 	{ key: 'language', title: 'Language', description: 'Choose the language used throughout the app.', icon: Languages, color: colors.pink[800], background: colors.pink[50] },
-	{ key: 'theme', title: 'Theme', description: 'Choose how PresenceHub looks on your device.', icon: Sun, color: colors.orange[600], background: colors.orange[50] },
-	{ key: 'support', title: 'Support Center', description: 'Find help and contact the PresenceHub support team.', icon: LifeBuoy, color: colors.green[600], background: colors.green[50] },
+	{ key: 'theme', title: 'Theme', description: 'Choose how Presenza looks on your device.', icon: Sun, color: colors.orange[600], background: colors.orange[50] },
+	{ key: 'support', title: 'Support Center', description: 'Find help and contact the Presenza support team.', icon: LifeBuoy, color: colors.green[600], background: colors.green[50] },
 	{ key: 'api-health', title: 'API Health', description: 'Monitor API availability and service response status.', icon: Activity, color: colors.orange[600], background: colors.orange[50] },
 	{ key: 'system-health', title: 'System Health', description: 'View current platform and infrastructure health.', icon: Server, color: colors.green[600], background: colors.green[50] },
 	{ key: 'security-standards', title: 'Security Standards', description: 'Review security controls and operational standards.', icon: ShieldCheck, color: colors.primary[600], background: colors.primary[50] },
@@ -62,7 +62,7 @@ const Settings = () => {
 	const [notificationSearch, setNotificationSearch] = useState('');
 	const [selectedStandard, setSelectedStandard] = useState(null);
 	const [supportInput, setSupportInput] = useState('');
-	const [supportMessages, setSupportMessages] = useState([{ id: 'welcome', role: 'assistant', text: 'Hi! I can help you complete tasks in PresenceHub. What would you like to do?' }]);
+	const [supportMessages, setSupportMessages] = useState([{ id: 'welcome', role: 'assistant', text: 'Hi! I can help you complete tasks in Presenza. What would you like to do?' }]);
 	const [accountEmail, setAccountEmail] = useState(user?.email || '');
 	const [accountPhone, setAccountPhone] = useState(user?.phone || '+237 690 12 34 56');
 	const [accountSaved, setAccountSaved] = useState(false);
@@ -136,7 +136,7 @@ const Settings = () => {
 				<View style={styles.supportScreen}>
 					<Animated.ScrollView style={[styles.container, screenStyle]} contentContainerStyle={styles.supportContent}>
 						<TouchableOpacity style={styles.backButton} onPress={() => setSelectedKey(null)}><ArrowLeft size={18} color={colors.slate[700]} /><Text style={styles.backText}>Settings</Text></TouchableOpacity>
-						<View style={styles.chatHeader}><View style={styles.chatBotIcon}><Bot size={22} color={colors.green[600]} /></View><View><Text style={styles.detailTitle}>Support Center</Text><Text style={styles.chatStatus}>PresenceHub task assistant</Text></View></View>
+						<View style={styles.chatHeader}><View style={styles.chatBotIcon}><Bot size={22} color={colors.green[600]} /></View><View><Text style={styles.detailTitle}>Support Center</Text><Text style={styles.chatStatus}>Presenza task assistant</Text></View></View>
 						<View style={styles.chatCard}>
 							{supportMessages.map(message => (
 								<View key={message.id} style={[styles.chatBubble, message.role === 'user' ? styles.userBubble : styles.assistantBubble]}><Text style={[styles.chatBubbleText, message.role === 'user' && styles.userBubbleText]}>{message.text}</Text></View>
@@ -297,7 +297,7 @@ const Settings = () => {
 					<TouchableOpacity style={styles.backButton} onPress={() => setSelectedKey(null)}><ArrowLeft size={18} color={colors.slate[700]} /><Text style={styles.backText}>Settings</Text></TouchableOpacity>
 					<View style={styles.healthHero}>
 						<View style={styles.healthIcon}><CheckCircle2 size={30} color={colors.green[600]} /></View>
-						<View style={styles.healthHeroCopy}><Text style={styles.healthTitle}>All systems operational</Text><Text style={styles.healthSubtitle}>PresenceHub services are running normally.</Text></View>
+						<View style={styles.healthHeroCopy}><Text style={styles.healthTitle}>All systems operational</Text><Text style={styles.healthSubtitle}>Presenza services are running normally.</Text></View>
 					</View>
 					<View style={styles.healthCard}>
 						<View style={styles.healthCardHeader}><Text style={styles.healthCardTitle}>Service status</Text><TouchableOpacity style={styles.refreshButton} onPress={() => setSelectedKey('system-health')} accessibilityRole="button" accessibilityLabel="Refresh system health"><RefreshCw size={17} color={colors.pink[900]} /></TouchableOpacity></View>
@@ -372,10 +372,10 @@ const Settings = () => {
 					<View style={styles.policyCard}>
 						<View style={[styles.detailIcon, { backgroundColor: colors.slate[100] }]}><ShieldHalf size={28} color={colors.slate[700]} /></View>
 						<Text style={styles.detailTitle}>Privacy &amp; Policy</Text>
-						<Text style={styles.policyText}>PresenceHub is committed to protecting the privacy, safety, and trust of every organization and employee who uses our attendance platform. We collect only the information needed to provide secure attendance services, including employee identity details, check-in and check-out activity, verification results, device information, and location data when enabled by an authorized organization. This information is used to record attendance, maintain accurate operational reports, improve system reliability, detect unusual activity, and support authorized administrators.</Text>
-						<Text style={styles.policyText}>Access to attendance records is limited according to role and business need. Administrators may manage employee records and operational reports, while employees may access only the information associated with their own account. We use access controls, secure storage, audit activity, and ongoing monitoring to help prevent unauthorized access, alteration, disclosure, or loss of information. Organizations are responsible for configuring roles carefully and ensuring that their use of PresenceHub follows applicable employment, privacy, and data-protection requirements.</Text>
-						<Text style={styles.policyText}>PresenceHub does not sell personal information. We retain information only for as long as it is needed for the service, contractual obligations, legal requirements, dispute resolution, security investigations, or legitimate operational purposes. Authorized customers may request correction or deletion of records where permitted by law and may contact their system administrator or support representative for assistance with privacy requests.</Text>
-						<Text style={styles.policyText}>By using PresenceHub, users agree to provide accurate account information, protect their login credentials, use the platform lawfully, and respect the confidentiality of attendance data. We may update this policy when our services, security practices, or legal obligations change. Material updates will be communicated through the application or by an authorized organization administrator.</Text>
+						<Text style={styles.policyText}>Presenza is committed to protecting the privacy, safety, and trust of every organization and employee who uses our attendance platform. We collect only the information needed to provide secure attendance services, including employee identity details, check-in and check-out activity, verification results, device information, and location data when enabled by an authorized organization. This information is used to record attendance, maintain accurate operational reports, improve system reliability, detect unusual activity, and support authorized administrators.</Text>
+						<Text style={styles.policyText}>Access to attendance records is limited according to role and business need. Administrators may manage employee records and operational reports, while employees may access only the information associated with their own account. We use access controls, secure storage, audit activity, and ongoing monitoring to help prevent unauthorized access, alteration, disclosure, or loss of information. Organizations are responsible for configuring roles carefully and ensuring that their use of Presenza follows applicable employment, privacy, and data-protection requirements.</Text>
+						<Text style={styles.policyText}>Presenza does not sell personal information. We retain information only for as long as it is needed for the service, contractual obligations, legal requirements, dispute resolution, security investigations, or legitimate operational purposes. Authorized customers may request correction or deletion of records where permitted by law and may contact their system administrator or support representative for assistance with privacy requests.</Text>
+						<Text style={styles.policyText}>By using Presenza, users agree to provide accurate account information, protect their login credentials, use the platform lawfully, and respect the confidentiality of attendance data. We may update this policy when our services, security practices, or legal obligations change. Material updates will be communicated through the application or by an authorized organization administrator.</Text>
 					</View>
 				</Animated.ScrollView>
 			);
@@ -394,7 +394,7 @@ const Settings = () => {
 					<View style={styles.standardsCard}>
 						<View style={[styles.detailIcon, { backgroundColor: colors.primary[50] }]}><ShieldCheck size={28} color={colors.primary[600]} /></View>
 						<Text style={styles.detailTitle}>Security Standards</Text>
-						<Text style={styles.detailDescription}>Professional controls that protect PresenceHub attendance operations.</Text>
+						<Text style={styles.detailDescription}>Professional controls that protect Presenza attendance operations.</Text>
 						{standards.map(([title, description, explanation, Icon]) => (
 							<TouchableOpacity key={title} style={[styles.standardRow, selectedStandard === title && styles.standardRowSelected]} onPress={() => setSelectedStandard(selectedStandard === title ? null : title)} accessibilityRole="button" accessibilityState={{ selected: selectedStandard === title }}>
 								<View style={styles.standardIcon}><Icon size={18} color={colors.primary[600]} /></View>

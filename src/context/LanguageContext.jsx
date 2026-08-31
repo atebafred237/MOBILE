@@ -83,7 +83,7 @@ const translations = {
     passwordSuccessSubtitle: 'Your password has been updated. You can now sign in with your new password.',
     continueSignIn: 'Continue to sign in',
     operationalOverview: 'Operational Overview',
-    operationalSubtitle: 'Real-time monitoring of PresenceHub facilities. Tracking attendance, security checkpoints, and employee movement across global sectors.',
+    operationalSubtitle: 'Real-time monitoring of Presenza facilities. Tracking attendance, security checkpoints, and employee movement across global sectors.',
     last30Days: 'Last 30 Days',
     exportData: 'Export Data',
     totalEmployees: 'Total Employees',
@@ -201,7 +201,7 @@ const translations = {
     passwordSuccessSubtitle: 'Votre mot de passe a été mis à jour. Vous pouvez maintenant vous connecter.',
     continueSignIn: 'Continuer vers la connexion',
     operationalOverview: 'Aperçu opérationnel',
-    operationalSubtitle: 'Surveillance en temps réel des installations PresenceHub. Suivi des présences, des points de contrôle et des mouvements des employés.',
+    operationalSubtitle: 'Surveillance en temps réel des installations Presenza. Suivi des présences, des points de contrôle et des mouvements des employés.',
     last30Days: '30 derniers jours',
     exportData: 'Exporter les données',
     totalEmployees: 'Total des employés',
@@ -246,14 +246,14 @@ export const LanguageProvider = ({ children }) => {
   const [language, setLanguageState] = useState('English');
 
   useEffect(() => {
-    AsyncStorage.getItem('presencehub_language').then(savedLanguage => {
+    AsyncStorage.getItem('Presenza_language').then(savedLanguage => {
       if (savedLanguage === 'English' || savedLanguage === 'French') setLanguageState(savedLanguage);
     });
   }, []);
 
   const setLanguage = async value => {
     setLanguageState(value);
-    await AsyncStorage.setItem('presencehub_language', value);
+    await AsyncStorage.setItem('Presenza_language', value);
   };
 
   const t = key => translations[language][key] || translations.English[key] || key;

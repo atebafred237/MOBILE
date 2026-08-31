@@ -64,6 +64,14 @@ export const DataProvider = ({ children }) => {
     setEmployees([{ ...emp, id: employees.length + 1, avatar: emp.avatar || 'https://i.pravatar.cc/150' }, ...employees]);
   };
 
+  const updateEmployee = (id, updatedFields) => {
+    setEmployees(current => current.map(emp => emp.id === id ? { ...emp, ...updatedFields } : emp));
+  };
+
+  const addAttendance = (record) => {
+    setAttendance([{ id: Date.now(), ...record }, ...attendance]);
+  };
+
   const markAdminNotifRead = (id) => {
     if(id === 'all') {
       setAdminNotifs(adminNotifs.map(n => ({...n, read: true})));
@@ -92,8 +100,8 @@ export const DataProvider = ({ children }) => {
 
   return (
     <DataContext.Provider value={{
-      employees, addEmployee,
-      attendance, 
+      employees, addEmployee, updateEmployee,
+      attendance, addAttendance,
       adminNotifs, markAdminNotifRead,
       empNotifs, markEmpNotifRead,
       reports, deleteReport, deleteAllReports,

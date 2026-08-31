@@ -46,7 +46,7 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
         style={styles.logo}
         resizeMethod="resize"
         resizeMode="contain"
-        accessibilityLabel="PresenceHub logo"
+        accessibilityLabel="Presenza logo"
       />
       <View style={styles.headerTools}>
         <TouchableOpacity style={styles.notificationButton} onPress={() => { setNotificationsVisible(value => !value); setProfileMenuVisible(false); }} accessibilityLabel="Notifications">

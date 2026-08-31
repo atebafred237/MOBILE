@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Image, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Keyboard, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { colors, spacing } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -9,8 +10,6 @@ const SignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [agreed, setAgreed] = useState(false);
-  const [agreementError, setAgreementError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const navigation = useNavigation();
@@ -32,11 +31,6 @@ const SignIn = () => {
   }, []);
 
   const handleLogin = async () => {
-    if (!agreed) {
-      setAgreementError('Please agree to the Terms & Policies before signing in.');
-      return;
-    }
-
     setLoading(true);
     await login(email, password);
     setLoading(false);
@@ -45,16 +39,6 @@ const SignIn = () => {
   const handleForgotPassword = () => {
     navigation.navigate('ForgotPasswordEmail');
   };
-
-  const passwordChecks = [
-    password.length >= 8,
-    /[A-Z]/.test(password),
-    /[a-z]/.test(password),
-    /\d/.test(password),
-    /[^A-Za-z0-9]/.test(password),
-  ];
-  const strengthScore = passwordChecks.filter(Boolean).length;
-  const strengthLabel = strengthScore < 3 ? 'Weak' : strengthScore < 5 ? 'Medium' : 'Strong';
 
   return (
     <KeyboardAvoidingView
@@ -90,7 +74,7 @@ const SignIn = () => {
             <View style={styles.passwordWrap}>
               <TextInput
                 style={styles.inputWithIcon}
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                placeholder="••••••••"
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
@@ -101,39 +85,21 @@ const SignIn = () => {
                 accessibilityRole="button"
                 accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
               >
-                <Text style={styles.eyeText}>{showPassword ? 'Hide' : 'Show'}</Text>
+                {showPassword ? (
+                  <EyeOff size={20} color={colors.slate[400]} />
+                ) : (
+                  <Eye size={20} color={colors.slate[400]} />
+                )}
               </TouchableOpacity>
             </View>
-            {password.length > 0 && (
-              <View style={styles.strengthWrap}>
-                <View style={styles.strengthTrack}>
-                  <View style={[styles.strengthFill, styles[`strengthFill${strengthLabel}`], { width: `${strengthScore * 20}%` }]} />
-                </View>
-                <Text style={[styles.strengthText, styles[`strengthText${strengthLabel}`]]}>
-                  Password strength: {strengthLabel}
-                </Text>
-              </View>
-            )}
           </View>
 
           <View style={styles.optionsRow}>
-            <TouchableOpacity
-              style={styles.checkboxRow}
-              onPress={() => {
-                setAgreed(value => !value);
-                setAgreementError('');
-              }}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: agreed }}
-            >
-              <View style={[styles.checkbox, agreed && styles.checkboxChecked]} />
-              <Text style={styles.checkboxText}>{t('agreeTerms')}</Text>
-            </TouchableOpacity>
+            <View style={{ flex: 1 }} />
             <TouchableOpacity onPress={handleForgotPassword}>
               <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
             </TouchableOpacity>
           </View>
-          {!!agreementError && <Text style={styles.agreementError}>{agreementError}</Text>}
 
           <TouchableOpacity
             style={styles.button}
@@ -236,46 +202,6 @@ const styles = StyleSheet.create({
     right: 12,
     paddingVertical: 4,
     paddingHorizontal: 6,
-  },
-  eyeText: {
-    color: colors.pink[800],
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  strengthWrap: {
-    marginTop: spacing.xs,
-  },
-  strengthTrack: {
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.slate[200],
-    overflow: 'hidden',
-  },
-  strengthFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  strengthFillWeak: {
-    backgroundColor: colors.danger,
-  },
-  strengthFillMedium: {
-    backgroundColor: colors.orange[500],
-  },
-  strengthFillStrong: {
-    backgroundColor: colors.green[600],
-  },
-  strengthText: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  strengthTextWeak: {
-    color: colors.danger,
-  },
-  strengthTextMedium: {
-    color: colors.orange[600],
-  },
-  strengthTextStrong: {
-    color: colors.green[600],
   },
   optionsRow: {
     flexDirection: 'row',

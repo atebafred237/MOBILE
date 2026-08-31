@@ -39,7 +39,7 @@ export const employees = Array.from({ length: 45 }).map((_, i) => ({
   id: i + 1,
   matricule: `EMP-00${i + 1}`,
   name: ['Sarah Jenkins', 'Marcus Thompson', 'David Chen', 'Elena Rodriguez', 'Robert Wilson', 'Alice Smith', 'John Doe', 'Emma Watson', 'Michael Brown', 'Sophia Lee'][i % 10] + (i > 9 ? ` ${i}` : ''),
-  email: `user${i+1}@presencehub.com`,
+  email: `user${i+1}@Presenza.com`,
   department: ['Operations', 'Engineering', 'Design', 'Sales', 'HR'][i % 5],
   role: ['Manager', 'Senior Engineer', 'UX Designer', 'Account Executive', 'HR Specialist'][i % 5],
   position: ['Manager', 'Senior', 'Staff', 'Junior'][i % 4],

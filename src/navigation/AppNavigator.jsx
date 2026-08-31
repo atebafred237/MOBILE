@@ -26,6 +26,7 @@ import Settings from '../pages/Settings';
 import EmployeeDashboard from '../pages/EmployeeDashboard';
 import EmployeeAttendance from '../pages/EmployeeAttendance';
 import EmployeeProfile from '../pages/EmployeeProfile';
+import KioskDashboard from '../pages/KioskDashboard';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -196,6 +197,8 @@ const AppNavigator = () => {
           </>
         ) : user.role === 'admin' ? (
           <Stack.Screen name="AdminRoot" component={AdminTabs} />
+        ) : user.role === 'kiosk' ? (
+          <Stack.Screen name="KioskRoot" component={KioskDashboard} />
         ) : (
           <Stack.Screen name="EmployeeRoot" component={EmployeeTabs} />
         )}
