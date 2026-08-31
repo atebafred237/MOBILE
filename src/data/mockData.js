@@ -50,26 +50,201 @@ export const employees = Array.from({ length: 45 }).map((_, i) => ({
 
 // Generate 100 attendance records for pagination and date range testing
 const today = new Date();
-export const allAttendance = Array.from({ length: 100 }).map((_, i) => {
-  const date = new Date(today);
-  date.setDate(date.getDate() - (i % 40)); // spread over last 40 days
-  const isLate = i % 7 === 0;
-  const isAbsent = i % 12 === 0;
-  return {
-    id: i + 1,
-    employeeId: (i % 45) + 1,
-    name: employees[i % 45].name,
-    department: employees[i % 45].department,
-    avatar: employees[i % 45].avatar,
-    date: date.toISOString().split('T')[0],
-    timestamp: isAbsent ? '---' : isLate ? '09:15 AM' : '08:30 AM',
-    checkOut: isAbsent ? '---' : '05:30 PM',
-    status: isAbsent ? 'Absent' : isLate ? 'Late' : 'Present',
-    authMethod: ['Facial Recognition', 'Mobile App', 'QR Scan'][i % 3],
+
+const sampleAttendanceRecords = [
+  {
+    id: 200,
+    employeeId: 42,
+    name: 'Employee 42',
+    department: 'Operations',
+    avatar: 'https://i.pravatar.cc/150?u=42',
+    date: today.toISOString().split('T')[0],
+    timestamp: '08:15 AM',
+    checkOut: '05:15 PM',
+    status: 'Present',
+    authMethod: 'Facial Recognition',
     location: 'Main Entrance',
-    totalHours: isAbsent ? '0h' : isLate ? '8.2h' : '9.0h'
-  };
-});
+    totalHours: '9.0h'
+  },
+  {
+    id: 201,
+    employeeId: 5,
+    name: 'Alice Smith',
+    department: 'HR',
+    avatar: 'https://i.pravatar.cc/150?u=5',
+    date: today.toISOString().split('T')[0],
+    timestamp: '08:40 AM',
+    checkOut: '05:30 PM',
+    status: 'Present',
+    authMethod: 'Mobile App',
+    location: 'Main Entrance',
+    totalHours: '8.8h'
+  },
+  {
+    id: 202,
+    employeeId: 9,
+    name: 'Emma Watson',
+    department: 'Design',
+    avatar: 'https://i.pravatar.cc/150?u=9',
+    date: today.toISOString().split('T')[0],
+    timestamp: '08:50 AM',
+    checkOut: '05:45 PM',
+    status: 'Present',
+    authMethod: 'QR Scan',
+    location: 'Main Entrance',
+    totalHours: '8.9h'
+  },
+  {
+    id: 203,
+    employeeId: 42,
+    name: 'Employee 42',
+    department: 'Operations',
+    avatar: 'https://i.pravatar.cc/150?u=42',
+    date: today.toISOString().split('T')[0],
+    timestamp: '09:20 AM',
+    checkOut: '05:50 PM',
+    status: 'Late',
+    authMethod: 'Mobile App',
+    location: 'Main Entrance',
+    totalHours: '8.3h'
+  },
+  {
+    id: 204,
+    employeeId: 14,
+    name: 'Michael Brown',
+    department: 'Engineering',
+    avatar: 'https://i.pravatar.cc/150?u=14',
+    date: today.toISOString().split('T')[0],
+    timestamp: '09:35 AM',
+    checkOut: '06:00 PM',
+    status: 'Late',
+    authMethod: 'Facial Recognition',
+    location: 'Main Entrance',
+    totalHours: '8.1h'
+  },
+  {
+    id: 205,
+    employeeId: 18,
+    name: 'Sophia Lee',
+    department: 'Sales',
+    avatar: 'https://i.pravatar.cc/150?u=18',
+    date: today.toISOString().split('T')[0],
+    timestamp: '09:45 AM',
+    checkOut: '05:55 PM',
+    status: 'Late',
+    authMethod: 'Mobile App',
+    location: 'Main Entrance',
+    totalHours: '8.1h'
+  },
+  {
+    id: 206,
+    employeeId: 3,
+    name: 'David Chen',
+    department: 'Engineering',
+    avatar: 'https://i.pravatar.cc/150?u=3',
+    date: today.toISOString().split('T')[0],
+    timestamp: '---',
+    checkOut: '---',
+    status: 'Absent',
+    authMethod: 'Manual/Override',
+    location: 'Main Entrance',
+    totalHours: '0h'
+  },
+  {
+    id: 207,
+    employeeId: 42,
+    name: 'Employee 42',
+    department: 'Operations',
+    avatar: 'https://i.pravatar.cc/150?u=42',
+    date: today.toISOString().split('T')[0],
+    timestamp: '---',
+    checkOut: '---',
+    status: 'Absent',
+    authMethod: 'Manual/Override',
+    location: 'Main Entrance',
+    totalHours: '0h'
+  },
+  {
+    id: 208,
+    employeeId: 21,
+    name: 'Robert Wilson',
+    department: 'Operations',
+    avatar: 'https://i.pravatar.cc/150?u=21',
+    date: today.toISOString().split('T')[0],
+    timestamp: '---',
+    checkOut: '---',
+    status: 'Absent',
+    authMethod: 'Manual/Override',
+    location: 'Main Entrance',
+    totalHours: '0h'
+  },
+  {
+    id: 209,
+    employeeId: 8,
+    name: 'John Doe',
+    department: 'Operations',
+    avatar: 'https://i.pravatar.cc/150?u=8',
+    date: new Date(today.getTime() - 86400000).toISOString().split('T')[0],
+    timestamp: '08:10 AM',
+    checkOut: '05:12 PM',
+    status: 'Present',
+    authMethod: 'Facial Recognition',
+    location: 'Main Entrance',
+    totalHours: '9.0h'
+  },
+  {
+    id: 210,
+    employeeId: 17,
+    name: 'Elena Rodriguez',
+    department: 'Design',
+    avatar: 'https://i.pravatar.cc/150?u=17',
+    date: new Date(today.getTime() - 86400000).toISOString().split('T')[0],
+    timestamp: '09:30 AM',
+    checkOut: '05:45 PM',
+    status: 'Late',
+    authMethod: 'Mobile App',
+    location: 'Main Entrance',
+    totalHours: '8.2h'
+  },
+  {
+    id: 211,
+    employeeId: 23,
+    name: 'Marcus Thompson',
+    department: 'Engineering',
+    avatar: 'https://i.pravatar.cc/150?u=23',
+    date: new Date(today.getTime() - 172800000).toISOString().split('T')[0],
+    timestamp: '---',
+    checkOut: '---',
+    status: 'Absent',
+    authMethod: 'Manual/Override',
+    location: 'Main Entrance',
+    totalHours: '0h'
+  }
+];
+
+export const allAttendance = [
+  ...Array.from({ length: 100 }).map((_, i) => {
+    const date = new Date(today);
+    date.setDate(date.getDate() - (i % 40));
+    const isLate = i % 7 === 0;
+    const isAbsent = i % 12 === 0;
+    return {
+      id: i + 1,
+      employeeId: (i % 45) + 1,
+      name: employees[i % 45].name,
+      department: employees[i % 45].department,
+      avatar: employees[i % 45].avatar,
+      date: date.toISOString().split('T')[0],
+      timestamp: isAbsent ? '---' : isLate ? '09:15 AM' : '08:30 AM',
+      checkOut: isAbsent ? '---' : '05:30 PM',
+      status: isAbsent ? 'Absent' : isLate ? 'Late' : 'Present',
+      authMethod: ['Facial Recognition', 'Mobile App', 'QR Scan'][i % 3],
+      location: 'Main Entrance',
+      totalHours: isAbsent ? '0h' : isLate ? '8.2h' : '9.0h'
+    };
+  }),
+  ...sampleAttendanceRecords
+];
 
 export const adminNotifications = [
   { id: 1, type: 'Security', title: 'Security Alert', message: 'Multiple failed facial verifications at North Gate.', date: new Date().toISOString(), read: false },

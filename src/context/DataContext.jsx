@@ -82,6 +82,13 @@ export const DataProvider = ({ children }) => {
 
   const deleteReport = id => setReports(current => current.filter(report => report.id !== id));
   const deleteAllReports = () => setReports([]);
+  const deleteNotification = (id, role = 'admin') => {
+    if (role === 'admin') {
+      setAdminNotifs(current => current.filter(notification => notification.id !== id));
+      return;
+    }
+    setEmpNotifs(current => current.filter(notification => notification.id !== id));
+  };
 
   return (
     <DataContext.Provider value={{
@@ -90,6 +97,7 @@ export const DataProvider = ({ children }) => {
       adminNotifs, markAdminNotifRead,
       empNotifs, markEmpNotifRead,
       reports, deleteReport, deleteAllReports,
+      deleteNotification,
       loading
     }}>
       {children}

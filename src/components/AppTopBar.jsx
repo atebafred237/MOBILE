@@ -33,6 +33,12 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
 
   const popupStyle = { opacity: popupAnimation, transform: [{ scale: popupAnimation.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) }, { translateY: popupAnimation.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }] };
 
+  const handleNavigate = (targetRoute, params) => {
+    setProfileMenuVisible(false);
+    setNotificationsVisible(false);
+    setTimeout(() => navigation.navigate(targetRoute, params), 10);
+  };
+
   return (
     <View style={[styles.topBar, { height: 100 + insets.top, paddingTop: insets.top }, isDark && styles.darkTopBar, isAttendance && styles.attendanceTopBar]}>
       <Image
@@ -47,7 +53,7 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
           <Bell size={21} color={isDark ? colors.slate[100] : colors.slate[700]} />
           {unreadCount > 0 && <View style={styles.notificationBadge}><Text style={styles.notificationCount}>{unreadCount}</Text></View>}
         </TouchableOpacity>
-        <TouchableOpacity style={styles.profileButton} onPress={() => setProfileMenuVisible(value => !value)} accessibilityLabel="Open profile menu">
+        <TouchableOpacity style={styles.profileButton} onPress={() => { setProfileMenuVisible(value => !value); setNotificationsVisible(false); }} accessibilityLabel="Open profile menu">
           <Image source={{ uri: user?.avatar || 'https://i.pravatar.cc/150?u=admin' }} style={styles.profileAvatar} />
         </TouchableOpacity>
       </View>
@@ -63,7 +69,7 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
                 </TouchableOpacity>
               </View>
               {notifications.length ? notifications.slice(0, 3).map(notification => (
-                <TouchableOpacity key={notification.id} style={[styles.notificationItem, !notification.read && styles.unreadNotification]} onPress={() => { markNotificationRead(notification.id); setNotificationsVisible(false); navigation.navigate(settingsRoute, { section: 'notifications', notification, notificationRequest: Date.now() }); }}>
+                <TouchableOpacity key={notification.id} style={[styles.notificationItem, !notification.read && styles.unreadNotification]} onPress={() => { markNotificationRead(notification.id); handleNavigate(settingsRoute, { section: 'notifications', notification, notificationRequest: Date.now() }); }}>
                   <View style={styles.notificationContent}>
                     <Text style={styles.notificationType}>{notification.type}</Text>
                     <Text style={styles.notificationTitle}>{notification.title}</Text>
@@ -72,7 +78,7 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
                   {!notification.read && <View style={styles.unreadDot} />}
                 </TouchableOpacity>
               )) : <Text style={styles.emptyNotifications}>No notifications</Text>}
-              {notifications.length > 0 && <TouchableOpacity style={styles.viewAllButton} onPress={() => { setNotificationsVisible(false); navigation.navigate(settingsRoute, { section: 'notifications', notification: null, notificationListRequest: Date.now() }); }}><Text style={styles.viewAllText}>View all notifications</Text></TouchableOpacity>}
+              {notifications.length > 0 && <TouchableOpacity style={styles.viewAllButton} onPress={() => handleNavigate(settingsRoute, { section: 'notifications', notification: null, notificationListRequest: Date.now() })}><Text style={styles.viewAllText}>View all notifications</Text></TouchableOpacity>}
             </Animated.View>
           </View>
         </Modal>
@@ -87,17 +93,17 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
             <View><Text style={styles.menuTitle}>System Administrator</Text><Text style={styles.menuEmail}>{user?.email || 'admin@example.com'}</Text></View>
           </View>
           <View style={styles.menuDivider} />
-          <TouchableOpacity style={styles.menuItem} onPress={() => { setProfileMenuVisible(false); navigation.navigate(user?.role === 'employee' ? 'EmployeeProfile' : settingsRoute, user?.role === 'admin' ? { section: 'account' } : undefined); }}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate(user?.role === 'employee' ? 'EmployeeProfile' : settingsRoute, user?.role === 'admin' ? { section: 'account' } : undefined)}>
             <User size={18} color={colors.slate[600]} /><Text style={styles.menuItemText}>My Profile</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} onPress={() => { setProfileMenuVisible(false); navigation.navigate(settingsRoute); }}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate(settingsRoute)}>
             <Settings size={18} color={colors.slate[600]} /><Text style={styles.menuItemText}>Account Settings</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} onPress={() => { setProfileMenuVisible(false); navigation.navigate(settingsRoute, { section: 'support' }); }}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate(settingsRoute, { section: 'support' })}>
             <LifeBuoy size={18} color={colors.slate[600]} /><Text style={styles.menuItemText}>Support Center</Text>
           </TouchableOpacity>
           <View style={styles.menuDivider} />
-          <TouchableOpacity style={styles.menuItem} onPress={logout}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => { setProfileMenuVisible(false); setTimeout(logout, 10); }}>
             <LogOut size={18} color={colors.danger} /><Text style={styles.signOutText}>Sign Out</Text>
           </TouchableOpacity>
             </Animated.View>

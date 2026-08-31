@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Easing, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Animated, Easing, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Activity, ArrowLeft, Bell, Bot, CheckCircle2, ChevronRight, FileText, Languages, LifeBuoy, LogOut, Moon, RefreshCw, Search, Send, Server, ShieldCheck, ShieldHalf, Sun, Trash2, UserRound } from 'lucide-react-native';
 import { colors, spacing } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
-import { useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 const SETTINGS_OPTIONS = [
 	{ key: 'reports', title: 'Reports', description: 'Review, export, and manage attendance reports.', icon: FileText, color: colors.pink[800], background: colors.pink[50] },
@@ -50,10 +50,14 @@ const Settings = () => {
 	const { language, setLanguage: saveLanguage, t } = useLanguage();
 	const { isDark } = useTheme();
 	const { theme, setTheme } = useTheme();
-	const { adminNotifs, empNotifs, markAdminNotifRead, markEmpNotifRead, reports, deleteReport, deleteAllReports } = useData();
+	const { adminNotifs, empNotifs, markAdminNotifRead, markEmpNotifRead, reports, deleteReport, deleteAllReports, deleteNotification } = useData();
 	const route = useRoute();
+	const navigation = useNavigation();
 	const [selectedKey, setSelectedKey] = useState(route.params?.section || null);
 	const [selectedNotification, setSelectedNotification] = useState(route.params?.notification || null);
+	const [notificationMenuId, setNotificationMenuId] = useState(null);
+	const [notificationConfirmAction, setNotificationConfirmAction] = useState(null);
+	const [selectedNotificationMenu, setSelectedNotificationMenu] = useState(null);
 	const [selectedReport, setSelectedReport] = useState(null);
 	const [notificationSearch, setNotificationSearch] = useState('');
 	const [selectedStandard, setSelectedStandard] = useState(null);
@@ -67,7 +71,13 @@ const Settings = () => {
 	const notifications = user?.role === 'admin' ? adminNotifs : empNotifs;
 	const markNotificationRead = user?.role === 'admin' ? markAdminNotifRead : markEmpNotifRead;
 	useEffect(() => {
-	}, []);
+		const unsubscribe = navigation.addListener('tabPress', (e) => {
+			setSelectedKey(null);
+			setSelectedNotification(null);
+			setSelectedReport(null);
+		});
+		return unsubscribe;
+	}, [navigation]);
 	useEffect(() => {
 		screenAnimation.setValue(0);
 		Animated.timing(screenAnimation, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
@@ -164,6 +174,10 @@ const Settings = () => {
 			const unreadCount = notifications.filter(notification => !notification.read).length;
 			const query = notificationSearch.trim().toLowerCase();
 			const visibleNotifications = notifications.filter(notification => !query || [notification.title, notification.message, notification.type].some(value => value.toLowerCase().includes(query)));
+			const handleNotificationAction = (action, notification) => {
+				setNotificationMenuId(null);
+				setNotificationConfirmAction({ action, notification });
+			};
 			return (
 				<Animated.ScrollView style={[styles.container, isDark && styles.darkContainer, screenStyle]} contentContainerStyle={styles.content}>
 					<TouchableOpacity style={styles.backButton} onPress={() => setSelectedKey(null)}>
@@ -180,13 +194,68 @@ const Settings = () => {
 					</View>
 					<View style={styles.notificationList}>
 						{visibleNotifications.map(notification => (
-							<TouchableOpacity key={notification.id} style={[styles.settingsNotificationRow, !notification.read && styles.settingsUnreadRow]} onPress={() => { markNotificationRead(notification.id); setSelectedNotification(notification); }}>
-								<View style={styles.settingsNotificationIcon}><Bell size={18} color={colors.orange[600]} /></View>
-								<View style={styles.settingsNotificationCopy}><View style={styles.settingsNotificationTitleRow}><Text style={styles.settingsNotificationTitle}>{notification.title}</Text>{!notification.read && <View style={styles.settingsUnreadDot} />}</View><Text style={styles.settingsNotificationMessage} numberOfLines={2}>{notification.message}</Text><Text style={styles.settingsNotificationTime}>{notification.type} Â· {getRelativeTime(notification.date)}</Text></View>
-							</TouchableOpacity>
+							<View key={notification.id} style={[styles.settingsNotificationRow, !notification.read && styles.settingsUnreadRow]}>
+								<TouchableOpacity style={styles.settingsNotificationInner} onPress={() => { markNotificationRead(notification.id); setSelectedNotification(notification); setNotificationMenuId(null); }}>
+									<View style={styles.settingsNotificationIcon}><Bell size={18} color={colors.orange[600]} /></View>
+									<View style={styles.settingsNotificationCopy}><View style={styles.settingsNotificationTitleRow}><Text style={styles.settingsNotificationTitle}>{notification.title}</Text>{!notification.read && <View style={styles.settingsUnreadDot} />}</View><Text style={styles.settingsNotificationMessage} numberOfLines={2}>{notification.message}</Text><Text style={styles.settingsNotificationTime}>{notification.type} Â· {getRelativeTime(notification.date)}</Text></View>
+								</TouchableOpacity>
+								<TouchableOpacity style={styles.notificationMenuButton} onPress={() => setNotificationMenuId(notificationMenuId === notification.id ? null : notification.id)} accessibilityLabel={`More options for ${notification.title}`}>
+									<View style={styles.notificationMenuRow}>
+										<View style={styles.notificationMenuDot} />
+										<View style={styles.notificationMenuDot} />
+										<View style={styles.notificationMenuDot} />
+									</View>
+								</TouchableOpacity>
+								<Modal visible={notificationMenuId === notification.id} transparent={true} animationType="none" onRequestClose={() => setNotificationMenuId(null)}>
+									<TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setNotificationMenuId(null)}>
+										<View style={styles.actionSheet}>
+											<TouchableOpacity style={[styles.actionSheetRow, { borderTopLeftRadius: 12, borderTopRightRadius: 12 }]} onPress={() => handleNotificationAction('see-more', notification)}>
+												<Text style={styles.actionSheetText}>See more</Text>
+											</TouchableOpacity>
+											<TouchableOpacity style={styles.actionSheetRow} onPress={() => handleNotificationAction('see-less', notification)}>
+												<Text style={styles.actionSheetText}>See less</Text>
+											</TouchableOpacity>
+											<TouchableOpacity style={[styles.actionSheetRow, styles.actionSheetDelete]} onPress={() => handleNotificationAction('delete', notification)}>
+												<Text style={[styles.actionSheetText, styles.actionSheetDeleteText]}>Delete</Text>
+											</TouchableOpacity>
+											<View style={styles.actionSheetCancelSpacer} />
+											<TouchableOpacity style={styles.actionSheetCancel} onPress={() => setNotificationMenuId(null)}>
+												<Text style={styles.actionSheetCancelText}>Cancel</Text>
+											</TouchableOpacity>
+										</View>
+									</TouchableOpacity>
+								</Modal>
+							</View>
 						))}
 						{!visibleNotifications.length && <Text style={styles.emptyNotifications}>No matching notifications</Text>}
 					</View>
+					<Modal visible={!!notificationConfirmAction} transparent={true} animationType="none" onRequestClose={() => setNotificationConfirmAction(null)}>
+						<View style={styles.modalBackdropCentered}>
+							<View style={styles.confirmDialogCard}>
+								<Text style={styles.confirmDialogTitle}>
+									{notificationConfirmAction?.action === 'delete' ? 'Delete notification' : 'Confirm Action'}
+								</Text>
+								<Text style={styles.confirmDialogMessage}>
+									{notificationConfirmAction?.action === 'delete' ? 'Remove this notification?' : `Do you want to see ${notificationConfirmAction?.action === 'see-more' ? 'more' : 'fewer'} notifications of type: ${notificationConfirmAction?.notification?.type}?`}
+								</Text>
+								<View style={styles.confirmDialogActions}>
+									<TouchableOpacity style={styles.confirmDialogButtonCancel} onPress={() => setNotificationConfirmAction(null)}>
+										<Text style={styles.confirmDialogButtonCancelText}>Cancel</Text>
+									</TouchableOpacity>
+									<TouchableOpacity style={[styles.confirmDialogButtonConfirm, notificationConfirmAction?.action === 'delete' && styles.confirmDialogButtonDanger]} onPress={() => {
+										if (notificationConfirmAction?.action === 'delete') {
+											deleteNotification(notificationConfirmAction.notification.id, user?.role === 'admin' ? 'admin' : 'employee');
+										}
+										setNotificationConfirmAction(null);
+									}}>
+										<Text style={[styles.confirmDialogButtonConfirmText, notificationConfirmAction?.action === 'delete' && styles.confirmDialogButtonDangerText]}>
+											{notificationConfirmAction?.action === 'delete' ? 'Delete' : 'Yes'}
+										</Text>
+									</TouchableOpacity>
+								</View>
+							</View>
+						</View>
+					</Modal>
 				</Animated.ScrollView>
 			);
 		}
@@ -355,16 +424,21 @@ const Settings = () => {
 
 	return (
 				<Animated.ScrollView style={[styles.container, isDark && styles.darkContainer, screenStyle]} contentContainerStyle={styles.content}>
-			<View style={styles.headingBlock}>
-				<Text style={styles.title}>{t('settings')}</Text>
-				<Text style={styles.subtitle}>{t('settingsSubtitle')}</Text>
+			<View style={styles.headingCard}>
+				<View>
+					<Text style={styles.eyebrow}>Profile</Text>
+					<Text style={styles.title}>Settings</Text>
+				</View>
+				<View style={styles.statusBadge}>
+					<Text style={styles.statusBadgeText}>Active</Text>
+				</View>
 			</View>
 			<View style={styles.optionsCard}>
 				{SETTINGS_OPTIONS.map(option => {
 					const Icon = option.icon;
 					return (
 						<TouchableOpacity key={option.key} style={styles.optionRow} onPress={() => setSelectedKey(option.key)}>
-							<View style={[styles.optionIcon, { backgroundColor: option.background }]}><Icon size={19} color={option.color} /></View>
+							<View style={[styles.optionIcon, { backgroundColor: option.background }]}><Icon size={18} color={option.color} /></View>
 							<View style={styles.optionCopy}><Text style={styles.optionTitle}>{t(option.key === 'system-health' ? 'systemHealth' : option.key === 'privacy-policy' ? 'privacyPolicy' : option.key)}</Text><Text style={styles.optionDescription}>{option.description}</Text></View>
 							<ChevronRight size={18} color={colors.slate[400]} />
 						</TouchableOpacity>
@@ -380,19 +454,43 @@ const Settings = () => {
 };
 
 const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: colors.slate[50] },
+	container: { flex: 1, backgroundColor: '#f4f7f5' },
 	darkContainer: { backgroundColor: colors.slate[900] },
-	content: { padding: spacing.md, paddingBottom: spacing.xl },
-	headingBlock: { marginBottom: spacing.md },
-	title: { fontSize: 24, fontWeight: '700', color: colors.slate[900] },
+	content: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.md },
+	headingCard: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		backgroundColor: '#ffffff',
+		borderRadius: 22,
+		borderWidth: 1,
+		borderColor: '#e2e8f0',
+		paddingHorizontal: spacing.md,
+		paddingVertical: spacing.md,
+		shadowColor: '#0f172a',
+		shadowOpacity: 0.04,
+		shadowRadius: 10,
+		elevation: 1,
+	},
+	eyebrow: { color: '#16856B', fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
+	title: { fontSize: 24, fontWeight: '800', color: colors.slate[900], marginTop: 3 },
 	subtitle: { fontSize: 14, color: colors.slate[500], lineHeight: 20, marginTop: spacing.xs },
-	optionsCard: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate[200], borderRadius: 12, paddingHorizontal: spacing.md },
-	optionRow: { minHeight: 70, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.slate[100], gap: spacing.sm },
-	optionIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+	statusBadge: {
+		backgroundColor: '#ecfdf5',
+		borderWidth: 1,
+		borderColor: '#a7f3d0',
+		borderRadius: 999,
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+	},
+	statusBadgeText: { color: '#047857', fontSize: 11, fontWeight: '700' },
+	optionsCard: { backgroundColor: colors.white, borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 20, paddingVertical: spacing.sm, paddingHorizontal: spacing.sm },
+	optionRow: { minHeight: 74, flexDirection: 'row', alignItems: 'center', borderRadius: 14, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, gap: spacing.sm },
+	optionIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 	optionCopy: { flex: 1 },
-	optionTitle: { color: colors.slate[800], fontSize: 14, fontWeight: '700' },
-	optionDescription: { color: colors.slate[500], fontSize: 12, marginTop: 3 },
-	signOutButton: { minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, marginTop: spacing.md, borderWidth: 1, borderColor: '#fecaca', borderRadius: 8, backgroundColor: '#fef2f2' },
+	optionTitle: { color: '#172033', fontSize: 14, fontWeight: '700' },
+	optionDescription: { color: '#667085', fontSize: 12, marginTop: 3, lineHeight: 18 },
+	signOutButton: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, borderWidth: 1, borderColor: '#fecaca', borderRadius: 14, backgroundColor: '#fef2f2' },
 	signOutText: { color: colors.danger, fontSize: 14, fontWeight: '700' },
 	backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.md },
 	backText: { color: colors.slate[700], fontSize: 14, fontWeight: '600' },
@@ -495,7 +593,8 @@ const styles = StyleSheet.create({
 	notificationSearch: { height: 44, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.sm, marginBottom: spacing.md, borderWidth: 1, borderColor: colors.slate[300], borderRadius: 8, backgroundColor: colors.white },
 	notificationSearchInput: { flex: 1, color: colors.slate[900], fontSize: 13 },
 	notificationList: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate[200], borderRadius: 12, paddingHorizontal: spacing.md },
-	settingsNotificationRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.slate[100] },
+	settingsNotificationRow: { position: 'relative', flexDirection: 'row', alignItems: 'flex-start', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.slate[100] },
+	settingsNotificationInner: { flex: 1, flexDirection: 'row', alignItems: 'flex-start' },
 	settingsUnreadRow: { backgroundColor: colors.slate[50] },
 	settingsNotificationIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.orange[50] },
 	settingsNotificationCopy: { flex: 1, marginLeft: spacing.sm },
@@ -504,7 +603,35 @@ const styles = StyleSheet.create({
 	settingsUnreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary[600], marginLeft: spacing.sm },
 	settingsNotificationMessage: { color: colors.slate[600], fontSize: 12, lineHeight: 18, marginTop: 3 },
 	settingsNotificationTime: { color: colors.slate[400], fontSize: 11, marginTop: 5 },
+	notificationMenuButton: { width: 28, height: 28, marginLeft: spacing.sm, alignItems: 'center', justifyContent: 'center', borderRadius: 8 },
+	notificationMenuRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+	notificationMenuDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.slate[400] },
+	notificationActionMenu: { position: 'absolute', top: 36, right: 4, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate[200], borderRadius: 12, paddingVertical: 6, minWidth: 150, shadowColor: '#0f172a', shadowOpacity: 0.1, shadowRadius: 12, elevation: 3, zIndex: 20 },
+	notificationActionRow: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.slate[100] },
+	notificationActionDelete: { borderBottomWidth: 0 },
+	notificationActionText: { color: colors.slate[700], fontSize: 13, fontWeight: '600' },
+	notificationActionDeleteText: { color: colors.danger },
 	emptyNotifications: { color: colors.slate[500], fontSize: 13, padding: spacing.md, textAlign: 'center' },
+	modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+	actionSheet: { backgroundColor: '#f4f7f5', padding: spacing.md, paddingBottom: 40, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+	actionSheetRow: { backgroundColor: colors.white, padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.slate[100], alignItems: 'center' },
+	actionSheetDelete: { borderBottomWidth: 0, borderBottomLeftRadius: 12, borderBottomRightRadius: 12 },
+	actionSheetText: { color: colors.slate[800], fontSize: 16, fontWeight: '500' },
+	actionSheetDeleteText: { color: colors.danger, fontWeight: '600' },
+	actionSheetCancelSpacer: { height: spacing.sm },
+	actionSheetCancel: { backgroundColor: colors.white, padding: spacing.md, borderRadius: 12, alignItems: 'center' },
+	actionSheetCancelText: { color: colors.slate[800], fontSize: 16, fontWeight: '600' },
+	modalBackdropCentered: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: spacing.lg },
+	confirmDialogCard: { backgroundColor: colors.white, borderRadius: 16, padding: spacing.xl, width: '100%', maxWidth: 340, shadowColor: '#0f172a', shadowOpacity: 0.15, shadowRadius: 20, elevation: 5 },
+	confirmDialogTitle: { color: colors.slate[900], fontSize: 18, fontWeight: '700', marginBottom: spacing.sm, textAlign: 'center' },
+	confirmDialogMessage: { color: colors.slate[600], fontSize: 14, lineHeight: 20, textAlign: 'center', marginBottom: spacing.xl },
+	confirmDialogActions: { flexDirection: 'row', gap: spacing.md },
+	confirmDialogButtonCancel: { flex: 1, paddingVertical: 12, backgroundColor: colors.slate[100], borderRadius: 10, alignItems: 'center' },
+	confirmDialogButtonCancelText: { color: colors.slate[700], fontSize: 15, fontWeight: '600' },
+	confirmDialogButtonConfirm: { flex: 1, paddingVertical: 12, backgroundColor: colors.pink[900], borderRadius: 10, alignItems: 'center' },
+	confirmDialogButtonDanger: { backgroundColor: colors.danger },
+	confirmDialogButtonConfirmText: { color: colors.white, fontSize: 15, fontWeight: '600' },
+	confirmDialogButtonDangerText: { color: colors.white },
 });
 
 export default Settings;
