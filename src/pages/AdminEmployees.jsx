@@ -5,10 +5,9 @@ import { colors, spacing } from '../theme';
 import { useData } from '../context/DataContext';
 
 const AdminEmployees = () => {
-  const { employees, addEmployee, updateEmployee } = useData();
+  const { employees, addEmployee, updateEmployee, deleteEmployee } = useData();
   const [filterText, setFilterText] = useState('');
   const [appliedFilter, setAppliedFilter] = useState('');
-  const [removedEmployees, setRemovedEmployees] = useState([]);
   const [bannedEmployees, setBannedEmployees] = useState([]);
 
   // Modal Form State
@@ -56,11 +55,11 @@ const AdminEmployees = () => {
   const confirmDelete = (employee) => {
     showDialog(
       'Delete Employee',
-      `Are you sure you want to delete ${employee.name}? This action cannot be undone.`,
+      `Are you sure you want to delete ${employee.name}? They will be moved to the Recycle Bin.`,
       'confirm',
       'Delete',
       'danger',
-      () => setRemovedEmployees(current => [...current, employee.id])
+      () => deleteEmployee(employee.id)
     );
   };
 
@@ -111,7 +110,6 @@ const AdminEmployees = () => {
   };
 
   const visibleEmployees = employees
-    .filter(employee => !removedEmployees.includes(employee.id))
     .filter(employee => {
       const query = appliedFilter.toLowerCase();
       if (!query) return true;

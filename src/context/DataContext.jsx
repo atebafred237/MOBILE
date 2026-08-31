@@ -10,6 +10,7 @@ export const DataProvider = ({ children }) => {
   const [adminNotifs, setAdminNotifs] = useState(initAdminNotifs);
   const [empNotifs, setEmpNotifs] = useState(initEmpNotifs);
   const [reports, setReports] = useState(initReports);
+  const [trash, setTrash] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,6 +36,9 @@ export const DataProvider = ({ children }) => {
 
         const savedReports = await AsyncStorage.getItem('ph_reports');
         if (savedReports) setReports(JSON.parse(savedReports));
+
+        const savedTrash = await AsyncStorage.getItem('ph_trash');
+        if (savedTrash) setTrash(JSON.parse(savedTrash));
       } catch (e) {
         console.error(e);
       } finally {
@@ -59,6 +63,9 @@ export const DataProvider = ({ children }) => {
   useEffect(() => {
     if(!loading) AsyncStorage.setItem('ph_reports', JSON.stringify(reports));
   }, [reports, loading]);
+  useEffect(() => {
+    if(!loading) AsyncStorage.setItem('ph_trash', JSON.stringify(trash));
+  }, [trash, loading]);
 
   const addEmployee = (emp) => {
     setEmployees([{ ...emp, id: employees.length + 1, avatar: emp.avatar || 'https://i.pravatar.cc/150' }, ...employees]);
@@ -88,8 +95,26 @@ export const DataProvider = ({ children }) => {
     }
   };
 
-  const deleteReport = id => setReports(current => current.filter(report => report.id !== id));
-  const deleteAllReports = () => setReports([]);
+  const deleteReport = id => {
+    setReports(current => {
+      const report = current.find(r => r.id === id);
+      if (report) {
+        setTrash(t => [{ ...report, deletedAt: new Date().toISOString(), type: 'report' }, ...t]);
+      }
+      return current.filter(r => r.id !== id);
+    });
+  };
+  const deleteAllReports = () => {
+    setReports(current => {
+      if (current.length > 0) {
+        setTrash(t => [
+          ...current.map(r => ({ ...r, deletedAt: new Date().toISOString(), type: 'report' })),
+          ...t
+        ]);
+      }
+      return [];
+    });
+  };
   const deleteNotification = (id, role = 'admin') => {
     if (role === 'admin') {
       setAdminNotifs(current => current.filter(notification => notification.id !== id));
@@ -98,14 +123,41 @@ export const DataProvider = ({ children }) => {
     setEmpNotifs(current => current.filter(notification => notification.id !== id));
   };
 
+  const clearTrash = () => setTrash([]);
+  const restoreFromTrash = id => {
+    setTrash(current => {
+      const item = current.find(t => t.id === id);
+      if (item) {
+        if (item.type === 'report') {
+          setReports(r => [item, ...r]);
+        } else if (item.type === 'employee') {
+          setEmployees(e => [item, ...e]);
+        }
+      }
+      return current.filter(t => t.id !== id);
+    });
+  };
+  const deleteFromTrash = id => setTrash(current => current.filter(t => t.id !== id));
+
+  const deleteEmployee = id => {
+    setEmployees(current => {
+      const employee = current.find(e => e.id === id);
+      if (employee) {
+        setTrash(t => [{ ...employee, deletedAt: new Date().toISOString(), type: 'employee' }, ...t]);
+      }
+      return current.filter(e => e.id !== id);
+    });
+  };
+
   return (
     <DataContext.Provider value={{
-      employees, addEmployee, updateEmployee,
+      employees, addEmployee, updateEmployee, deleteEmployee,
       attendance, addAttendance,
       adminNotifs, markAdminNotifRead,
       empNotifs, markEmpNotifRead,
       reports, deleteReport, deleteAllReports,
       deleteNotification,
+      trash, clearTrash, restoreFromTrash, deleteFromTrash,
       loading
     }}>
       {children}

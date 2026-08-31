@@ -50,13 +50,15 @@ const Settings = () => {
 	const { language, setLanguage: saveLanguage, t } = useLanguage();
 	const { isDark } = useTheme();
 	const { theme, setTheme } = useTheme();
-	const { adminNotifs, empNotifs, markAdminNotifRead, markEmpNotifRead, reports, deleteReport, deleteAllReports, deleteNotification } = useData();
+	const { adminNotifs, empNotifs, markAdminNotifRead, markEmpNotifRead, reports, deleteReport, deleteAllReports, deleteNotification, trash, clearTrash, restoreFromTrash, deleteFromTrash } = useData();
 	const route = useRoute();
 	const navigation = useNavigation();
 	const [selectedKey, setSelectedKey] = useState(route.params?.section || null);
 	const [selectedNotification, setSelectedNotification] = useState(route.params?.notification || null);
 	const [notificationMenuId, setNotificationMenuId] = useState(null);
 	const [notificationConfirmAction, setNotificationConfirmAction] = useState(null);
+	const [reportToDelete, setReportToDelete] = useState(null);
+	const [trashTab, setTrashTab] = useState('report'); // 'report', 'employee', 'attendance'
 	const [selectedNotificationMenu, setSelectedNotificationMenu] = useState(null);
 	const [selectedReport, setSelectedReport] = useState(null);
 	const [notificationSearch, setNotificationSearch] = useState('');
@@ -86,10 +88,15 @@ const Settings = () => {
 	const screenStyle = { opacity: screenAnimation, transform: [{ translateY: screenAnimation.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] };
 
 	useEffect(() => {
+		if (route.params?.resetRequest) {
+			setSelectedKey(null);
+			setSelectedNotification(null);
+			setSelectedReport(null);
+		}
 		if (route.params?.section === 'notifications') setSelectedNotification(null);
 		if (route.params?.notification) setSelectedNotification(route.params.notification);
 		if (route.params?.section) setSelectedKey(route.params.section);
-	}, [route.params?.notification, route.params?.section, route.params?.notificationRequest, route.params?.notificationListRequest]);
+	}, [route.params?.notification, route.params?.section, route.params?.notificationRequest, route.params?.notificationListRequest, route.params?.resetRequest]);
 
 	if (selectedNotification) {
 		return (
@@ -155,17 +162,77 @@ const Settings = () => {
 					<TouchableOpacity style={styles.backButton} onPress={() => setSelectedKey(null)}><ArrowLeft size={18} color={colors.slate[700]} /><Text style={styles.backText}>Settings</Text></TouchableOpacity>
 					<View style={styles.reportsHeader}>
 						<View><Text style={styles.detailTitle}>Downloaded Reports</Text><Text style={styles.notificationCountText}>{reports.length} saved report{reports.length === 1 ? '' : 's'}</Text></View>
-						{reports.length > 0 && <TouchableOpacity onPress={() => Alert.alert('Delete all reports', 'Remove all downloaded reports?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete all', style: 'destructive', onPress: deleteAllReports }])} accessibilityLabel="Delete all reports"><Trash2 size={19} color={colors.danger} /></TouchableOpacity>}
+						{reports.length > 0 && <TouchableOpacity onPress={() => setReportToDelete('all')} accessibilityLabel="Delete all reports"><Trash2 size={19} color={colors.danger} /></TouchableOpacity>}
 					</View>
 					<View style={styles.reportList}>
 						{reports.map(report => (
 							<View key={report.id} style={styles.reportRow}>
 								<View style={styles.reportIcon}><FileText size={20} color={colors.pink[800]} /></View>
 								<TouchableOpacity style={styles.reportCopy} onPress={() => setSelectedReport(report)} accessibilityLabel={`Open ${report.name}`}><Text style={styles.reportName}>{report.name}</Text><Text style={styles.reportMeta}>{report.format} Â· {report.size} Â· {getRelativeTime(report.date)}</Text></TouchableOpacity>
-								<TouchableOpacity onPress={() => deleteReport(report.id)} accessibilityLabel={`Delete ${report.name}`}><Trash2 size={18} color={colors.danger} /></TouchableOpacity>
+								<TouchableOpacity onPress={() => setReportToDelete(report)} accessibilityLabel={`Delete ${report.name}`}><Trash2 size={18} color={colors.danger} /></TouchableOpacity>
 							</View>
 						))}
 						{!reports.length && <Text style={styles.emptyNotifications}>No downloaded reports</Text>}
+					</View>
+					<Modal visible={!!reportToDelete} transparent={true} animationType="fade" onRequestClose={() => setReportToDelete(null)}>
+						<View style={styles.modalBackdropCentered}>
+							<View style={styles.confirmDialogCard}>
+								<Text style={styles.confirmDialogTitle}>Delete Report</Text>
+								<Text style={styles.confirmDialogMessage}>
+									{reportToDelete === 'all' ? 'Are you sure you want to delete all downloaded reports? They will be moved to the Recycle Bin.' : `Are you sure you want to delete "${reportToDelete?.name}"? It will be moved to the Recycle Bin.`}
+								</Text>
+								<View style={styles.confirmDialogActions}>
+									<TouchableOpacity style={styles.confirmDialogButtonCancel} onPress={() => setReportToDelete(null)}>
+										<Text style={styles.confirmDialogButtonCancelText}>Cancel</Text>
+									</TouchableOpacity>
+									<TouchableOpacity style={styles.confirmDialogButtonConfirm} onPress={() => {
+										if (reportToDelete === 'all') {
+											deleteAllReports();
+										} else {
+											deleteReport(reportToDelete.id);
+										}
+										setReportToDelete(null);
+									}}>
+										<Text style={styles.confirmDialogButtonConfirmText}>Delete</Text>
+									</TouchableOpacity>
+								</View>
+							</View>
+						</View>
+					</Modal>
+				</Animated.ScrollView>
+			);
+		}
+		if (selectedOption.key === 'trash') {
+			const filteredTrash = trash.filter(t => t.type === trashTab);
+			return (
+				<Animated.ScrollView style={[styles.container, isDark && styles.darkContainer, screenStyle]} contentContainerStyle={styles.content}>
+					<TouchableOpacity style={styles.backButton} onPress={() => setSelectedKey(null)}><ArrowLeft size={18} color={colors.slate[700]} /><Text style={styles.backText}>Settings</Text></TouchableOpacity>
+					<View style={styles.reportsHeader}>
+						<View><Text style={styles.detailTitle}>Recycle Bin</Text><Text style={styles.notificationCountText}>{trash.length} total item{trash.length === 1 ? '' : 's'}</Text></View>
+						{trash.length > 0 && <TouchableOpacity onPress={() => Alert.alert('Empty Bin', 'Permanently delete all items in the Recycle Bin?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Empty Bin', style: 'destructive', onPress: clearTrash }])} accessibilityLabel="Empty Recycle Bin"><Trash2 size={19} color={colors.danger} /></TouchableOpacity>}
+					</View>
+
+					<View style={styles.trashTabs}>
+						{['report', 'employee', 'attendance'].map(tab => (
+							<TouchableOpacity key={tab} style={[styles.trashTab, trashTab === tab && styles.trashTabActive]} onPress={() => setTrashTab(tab)}>
+								<Text style={[styles.trashTabText, trashTab === tab && styles.trashTabTextActive]}>{tab.charAt(0).toUpperCase() + tab.slice(1)}s</Text>
+							</TouchableOpacity>
+						))}
+					</View>
+
+					<View style={styles.reportList}>
+						{filteredTrash.map(item => (
+							<View key={item.id} style={styles.reportRow}>
+								<View style={[styles.reportIcon, { backgroundColor: colors.danger + '20' }]}><Trash2 size={20} color={colors.danger} /></View>
+								<View style={styles.reportCopy}>
+									<Text style={styles.reportName}>{item.name}</Text>
+									<Text style={styles.reportMeta}>Deleted {getRelativeTime(item.deletedAt || item.date)}</Text>
+								</View>
+								<TouchableOpacity style={styles.restoreBtn} onPress={() => restoreFromTrash(item.id)}><RefreshCw size={16} color={colors.pink[800]} /><Text style={styles.restoreBtnText}>Restore</Text></TouchableOpacity>
+								<TouchableOpacity onPress={() => deleteFromTrash(item.id)}><Trash2 size={18} color={colors.slate[400]} /></TouchableOpacity>
+							</View>
+						))}
+						{!filteredTrash.length && <Text style={styles.emptyNotifications}>No deleted {trashTab}s</Text>}
 					</View>
 				</Animated.ScrollView>
 			);
@@ -631,7 +698,13 @@ const styles = StyleSheet.create({
 	confirmDialogButtonConfirm: { flex: 1, paddingVertical: 12, backgroundColor: colors.pink[900], borderRadius: 10, alignItems: 'center' },
 	confirmDialogButtonDanger: { backgroundColor: colors.danger },
 	confirmDialogButtonConfirmText: { color: colors.white, fontSize: 15, fontWeight: '600' },
-	confirmDialogButtonDangerText: { color: colors.white },
+	trashTabs: { flexDirection: 'row', marginBottom: spacing.lg, backgroundColor: colors.slate[100], borderRadius: 8, padding: 4 },
+	trashTab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 6 },
+	trashTabActive: { backgroundColor: colors.white, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 },
+	trashTabText: { fontSize: 13, fontWeight: '500', color: colors.slate[600] },
+	trashTabTextActive: { color: colors.pink[800], fontWeight: '600' },
+	restoreBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, backgroundColor: colors.pink[50], borderRadius: 16, marginRight: 12 },
+	restoreBtnText: { marginLeft: 4, fontSize: 12, fontWeight: '600', color: colors.pink[800] },
 });
 
 export default Settings;

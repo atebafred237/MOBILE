@@ -6,10 +6,13 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hasOnboarded, setHasOnboarded] = useState(false);
 
   useEffect(() => {
     const loadUser = async () => {
       try {
+        const onboarded = await AsyncStorage.getItem('Presenza_onboarded');
+        if (onboarded) setHasOnboarded(true);
         const saved = await AsyncStorage.getItem('Presenza_user');
         if (saved) setUser(JSON.parse(saved));
       } catch (e) {
@@ -20,6 +23,11 @@ export const AuthProvider = ({ children }) => {
     };
     loadUser();
   }, []);
+
+  const completeOnboarding = async () => {
+    setHasOnboarded(true);
+    await AsyncStorage.setItem('Presenza_onboarded', 'true');
+  };
 
   const login = async (email, password) => {
     const savedPic = await AsyncStorage.getItem('profile_picture');
@@ -63,6 +71,7 @@ export const AuthProvider = ({ children }) => {
     
     setUser(loggedInUser);
     await AsyncStorage.setItem('Presenza_user', JSON.stringify(loggedInUser));
+    await completeOnboarding();
     return { success: true, role: loggedInUser.role };
   };
 
@@ -88,7 +97,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateProfilePicture, updateProfile, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateProfilePicture, updateProfile, loading, hasOnboarded, completeOnboarding }}>
       {children}
     </AuthContext.Provider>
   );
