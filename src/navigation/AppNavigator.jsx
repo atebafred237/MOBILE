@@ -3,7 +3,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Image } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
@@ -163,7 +163,7 @@ const EmployeeTabsContent = () => {
 };
 
 const AppNavigator = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, hasOnboarded } = useAuth();
 
   useEffect(() => {
     if (!loading && user) {
@@ -173,8 +173,12 @@ const AppNavigator = () => {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' }}>
+        <Image
+          source={require('../../assets/new logo transparent.png')}
+          style={{ width: 220, height: 60 }}
+          resizeMode="contain"
+        />
       </View>
     );
   }
@@ -183,18 +187,28 @@ const AppNavigator = () => {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
-          <>
-            <Stack.Group screenOptions={{ animation: 'none', gestureEnabled: true }}>
-              <Stack.Screen name="Onboarding" component={Onboarding} />
-              <Stack.Screen name="OnboardingTwo" component={OnboardingTwo} />
-              <Stack.Screen name="OnboardingThree" component={OnboardingThree} />
-            </Stack.Group>
-            <Stack.Screen name="SignIn" component={SignIn} />
-            <Stack.Screen name="ForgotPasswordEmail" component={ForgotPasswordEmail} />
-            <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-            <Stack.Screen name="ResetPassword" component={ResetPassword} />
-            <Stack.Screen name="PasswordSuccess" component={PasswordSuccess} />
-          </>
+          hasOnboarded ? (
+            <>
+              <Stack.Screen name="SignIn" component={SignIn} />
+              <Stack.Screen name="ForgotPasswordEmail" component={ForgotPasswordEmail} />
+              <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+              <Stack.Screen name="ResetPassword" component={ResetPassword} />
+              <Stack.Screen name="PasswordSuccess" component={PasswordSuccess} />
+            </>
+          ) : (
+            <>
+              <Stack.Group screenOptions={{ animation: 'none', gestureEnabled: true }}>
+                <Stack.Screen name="Onboarding" component={Onboarding} />
+                <Stack.Screen name="OnboardingTwo" component={OnboardingTwo} />
+                <Stack.Screen name="OnboardingThree" component={OnboardingThree} />
+              </Stack.Group>
+              <Stack.Screen name="SignIn" component={SignIn} />
+              <Stack.Screen name="ForgotPasswordEmail" component={ForgotPasswordEmail} />
+              <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+              <Stack.Screen name="ResetPassword" component={ResetPassword} />
+              <Stack.Screen name="PasswordSuccess" component={PasswordSuccess} />
+            </>
+          )
         ) : user.role === 'admin' ? (
           <Stack.Screen name="AdminRoot" component={AdminTabs} />
         ) : user.role === 'kiosk' ? (

@@ -38,7 +38,10 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
   const handleNavigate = (targetRoute, params) => {
     setProfileMenuVisible(false);
     setNotificationsVisible(false);
-    setTimeout(() => navigation.navigate(targetRoute, params), 10);
+    // Use requestAnimationFrame or direct navigation instead of setTimeout 10ms
+    requestAnimationFrame(() => {
+      navigation.navigate(targetRoute, params);
+    });
   };
 
   return (
@@ -98,10 +101,10 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
           <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate(user?.role === 'employee' ? 'EmployeeProfile' : settingsRoute, user?.role === 'admin' ? { section: 'account' } : undefined)}>
             <User size={18} color={colors.slate[600]} /><Text style={styles.menuItemText}>My Profile</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate(settingsRoute)}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate(settingsRoute, { resetRequest: Date.now() })}>
             <Settings size={18} color={colors.slate[600]} /><Text style={styles.menuItemText}>Account Settings</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate(settingsRoute, { section: 'support' })}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate(settingsRoute, { section: 'support', resetRequest: Date.now() })}>
             <LifeBuoy size={18} color={colors.slate[600]} /><Text style={styles.menuItemText}>Support Center</Text>
           </TouchableOpacity>
           <View style={styles.menuDivider} />

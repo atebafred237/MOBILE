@@ -9,15 +9,17 @@ import { API_BASE_URL } from '../config';
 import AttendanceTrendChartCard from '../components/AttendanceTrendChartCard';
 
 const StatCard = ({ title, value, icon: Icon, change }) => (
-  <View style={styles.card}>
-    <View style={styles.cardHeader}>
+  <View style={styles.statCard}>
+    <View style={styles.statCardTop}>
+      <Text style={styles.statCardTitle}>{title}</Text>
       <View style={styles.iconContainer}>
-        <Icon size={20} color={colors.slate[500]} />
+        <Icon size={18} color={colors.pink[800]} />
       </View>
-      <Text style={styles.changeText}>{change}</Text>
     </View>
-    <Text style={styles.cardTitle}>{title}</Text>
-    <Text style={styles.cardValue}>{value}</Text>
+    <View style={styles.statCardBottom}>
+      <Text style={styles.statCardValue}>{value}</Text>
+      <Text style={styles.statCardChange}>{change}</Text>
+    </View>
   </View>
 );
 
@@ -188,9 +190,14 @@ const AdminDashboard = () => {
         <Text style={styles.subtitle}>{t('operationalSubtitle')}</Text>
         
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.btnSecondary}>
+          <TouchableOpacity 
+            style={styles.btnSecondary} 
+            onPress={() => setSelectedPeriod(selectedPeriod === 'Day' ? 'Week' : selectedPeriod === 'Week' ? 'Month' : 'Day')}
+          >
             <Calendar size={16} color={colors.slate[700]} />
-            <Text style={styles.btnSecondaryText}>{t('last30Days')}</Text>
+            <Text style={styles.btnSecondaryText}>
+              {selectedPeriod === 'Day' ? 'Today' : selectedPeriod === 'Week' ? 'Last 7 Days' : 'Last 30 Days'}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.btnPrimary} onPress={exportDashboardData}>
             <Download size={16} color={colors.white} />
@@ -294,6 +301,7 @@ const AdminDashboard = () => {
             ))}
           </View>
         </View>
+<<<<<<< HEAD
         {liveFeed.map(row => (
           <View key={row.id} style={styles.feedRow}>
             <Image 
@@ -303,12 +311,38 @@ const AdminDashboard = () => {
             <View style={styles.feedInfo}>
               <Text style={styles.feedName}>{row.name}</Text>
               <Text style={styles.feedRole}>{row.timestamp} â€¢ {row.location}</Text>
+=======
+        <View style={styles.listContainer}>
+          {liveFeed.map(row => (
+            <View key={row.id} style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Image source={{ uri: row.avatar }} style={styles.avatar} />
+                <View style={styles.cardInfo}>
+                  <Text style={styles.empName}>{row.name}</Text>
+                  <Text style={styles.empDate}>{new Date(`${row.date}T00:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</Text>
+                </View>
+                <View style={[styles.statusPill, row.status === 'Present' ? styles.presentPill : row.status === 'Late' ? styles.latePill : styles.absentPill]}>
+                  <Text style={[styles.statusText, row.status === 'Present' ? styles.presentText : row.status === 'Late' ? styles.lateText : styles.absentText]}>{row.status}</Text>
+                </View>
+              </View>
+              <View style={styles.cardDetails}>
+                <View style={styles.detailRow}>
+                  <View style={styles.detailItem}>
+                    <Clock size={14} color={colors.slate[400]} />
+                    <Text style={styles.detailLabel}>In:</Text>
+                    <Text style={styles.detailValue}>{row.timestamp}</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <MapPin size={14} color={colors.slate[400]} />
+                    <Text style={styles.detailLabel}>Loc:</Text>
+                    <Text style={styles.detailValue}>{row.location}</Text>
+                  </View>
+                </View>
+              </View>
+>>>>>>> e660de545f91e336133cc9deb642064f69320ded
             </View>
-            <View style={styles.feedStatus}>
-              <Text style={styles.statusText}>{row.status}</Text>
-            </View>
-          </View>
-        ))}
+          ))}
+        </View>
         {!liveFeed.length && <Text style={styles.emptyFeedText}>{t('noMatchingAttendance')}</Text>}
       </View>
 
@@ -549,16 +583,8 @@ const styles = StyleSheet.create({
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: spacing.sm,
-  },
-  card: {
-    width: '100%',
-    marginBottom: spacing.sm,
-    backgroundColor: colors.white,
+    justifyContent: 'space-between',
     padding: spacing.md,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.slate[200],
   },
   analyticsRow: {
     flexDirection: 'column',
@@ -856,46 +882,145 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-  feedRow: {
+  statCard: {
+    width: '48%',
+    marginBottom: spacing.sm,
+    backgroundColor: colors.white,
+    padding: spacing.md,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.slate[200],
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  statCardTop: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.slate[100],
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.slate[200],
-  },
-  feedInfo: {
+  statCardTitle: {
+    fontSize: 13,
+    color: colors.slate[500],
+    fontWeight: '500',
     flex: 1,
-    marginLeft: 12,
+    paddingRight: 8,
   },
-  feedName: {
-    fontSize: 14,
-    fontWeight: '600',
+  statCardBottom: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
+  statCardValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
     color: colors.slate[900],
   },
-  feedRole: {
+  statCardChange: {
     fontSize: 12,
+    color: colors.green[700],
+    backgroundColor: colors.green[50],
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  listContainer: {
+    gap: spacing.md,
+  },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.slate[200],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.slate[100],
+    marginRight: spacing.md,
+  },
+  cardInfo: {
+    flex: 1,
+  },
+  empName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.slate[900],
+  },
+  empDate: {
+    fontSize: 13,
     color: colors.slate[500],
     marginTop: 2,
   },
-  feedStatus: {
-    backgroundColor: colors.green[50],
-    paddingHorizontal: 8,
+  statusPill: {
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.green[200],
+  },
+  presentPill: {
+    backgroundColor: '#ECFDF5',
+  },
+  latePill: {
+    backgroundColor: '#FFFBEB',
+  },
+  absentPill: {
+    backgroundColor: '#FEF2F2',
   },
   statusText: {
-    fontSize: 12,
-    color: colors.green[700],
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  presentText: {
+    color: '#059669',
+  },
+  lateText: {
+    color: '#D97706',
+  },
+  absentText: {
+    color: '#DC2626',
+  },
+  cardDetails: {
+    backgroundColor: colors.slate[50],
+    borderRadius: 12,
+    padding: spacing.md,
+    gap: 10,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 13,
+    color: colors.slate[500],
+  },
+  detailValue: {
+    fontSize: 13,
+    color: colors.slate[800],
     fontWeight: '500',
-  }
+  },
 });
 
 export default AdminDashboard;

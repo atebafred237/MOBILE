@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+<<<<<<< HEAD
 import { API_BASE_URL, SERVER_BASE_URL } from '../config';
+=======
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../config';
+>>>>>>> e660de545f91e336133cc9deb642064f69320ded
 
 const DataContext = createContext();
 // Helper to normalize avatar URLs consistently
@@ -14,11 +19,17 @@ const normalizeAvatarUrl = (img, fallback = null) => {
 
 export const DataProvider = ({ children }) => {
   const { token, user } = useAuth();
+<<<<<<< HEAD
   const [employees,  setEmployees]  = useState([]);
+=======
+
+  const [employees, setEmployees] = useState([]);
+>>>>>>> e660de545f91e336133cc9deb642064f69320ded
   const [attendance, setAttendance] = useState([]);
   const [adminNotifs, setAdminNotifs] = useState([]);
-  const [empNotifs,   setEmpNotifs]   = useState([]);
-  const [reports,     setReports]     = useState([]);
+  const [empNotifs, setEmpNotifs] = useState([]);
+  const [reports, setReports] = useState([]);
+  const [trash, setTrash] = useState([]);
   const [dataLoading, setDataLoading] = useState(false);
 
   /* ─── Fetch from API whenever the user / token changes ─── */
@@ -27,6 +38,17 @@ export const DataProvider = ({ children }) => {
 
     const load = async () => {
       setDataLoading(true);
+      
+      try {
+        const savedReports = await AsyncStorage.getItem('ph_reports');
+        if (savedReports) setReports(JSON.parse(savedReports));
+
+        const savedTrash = await AsyncStorage.getItem('ph_trash');
+        if (savedTrash) setTrash(JSON.parse(savedTrash));
+      } catch (e) {
+        console.warn('Could not load local reports/trash', e);
+      }
+
       const headers = {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
@@ -48,6 +70,7 @@ export const DataProvider = ({ children }) => {
               department: e.department ?? '',
               position:   e.position ?? '',
               matricule:  e.employee_code ?? '',
+<<<<<<< HEAD
               avatar:     (() => {
                 const img = e.reference_photo_path ?? e.profile_image ?? e.user?.profile_image ?? e.user?.avatar;
                 if (!img) return `https://ui-avatars.com/api/?name=${encodeURIComponent(e.full_name || e.user?.email || 'User')}&background=1e293b&color=fff&size=150`;
@@ -55,6 +78,9 @@ export const DataProvider = ({ children }) => {
                   const normalizedPath = img.startsWith('/') ? img : `/${img}`;
                   return `${SERVER_BASE_URL}${normalizedPath}`;
               })(),
+=======
+              avatar:     e.profile_image ?? e.user?.profile_image ?? `https://i.pravatar.cc/150?u=${e.user?.email || e.id}`,
+>>>>>>> e660de545f91e336133cc9deb642064f69320ded
               status:     e.status === 'active' ? 'Active' : 'Inactive',
             })));
           } else {
@@ -146,6 +172,7 @@ export const DataProvider = ({ children }) => {
     load();
   }, [token, user]);
 
+<<<<<<< HEAD
   const refresh = async () => {
     if (!token || !user) return;
     const headers = {
@@ -207,6 +234,26 @@ export const DataProvider = ({ children }) => {
       console.error('API Data refresh error', e);
     }
   };
+=======
+  useEffect(() => {
+    if(!dataLoading) AsyncStorage.setItem('ph_employees', JSON.stringify(employees));
+  }, [employees, dataLoading]);
+  useEffect(() => {
+    if(!dataLoading) AsyncStorage.setItem('ph_attendance', JSON.stringify(attendance));
+  }, [attendance, dataLoading]);
+  useEffect(() => {
+    if(!dataLoading) AsyncStorage.setItem('ph_adminNotifs', JSON.stringify(adminNotifs));
+  }, [adminNotifs, dataLoading]);
+  useEffect(() => {
+    if(!dataLoading) AsyncStorage.setItem('ph_empNotifs', JSON.stringify(empNotifs));
+  }, [empNotifs, dataLoading]);
+  useEffect(() => {
+    if(!dataLoading) AsyncStorage.setItem('ph_reports', JSON.stringify(reports));
+  }, [reports, dataLoading]);
+  useEffect(() => {
+    if(!dataLoading) AsyncStorage.setItem('ph_trash', JSON.stringify(trash));
+  }, [trash, dataLoading]);
+>>>>>>> e660de545f91e336133cc9deb642064f69320ded
 
   /* ─── Mutations (local state for now) ─── */
   const addEmployee = (emp) =>
@@ -232,22 +279,81 @@ export const DataProvider = ({ children }) => {
     );
   };
 
-  const deleteReport       = (id) => setReports(prev => prev.filter(r => r.id !== id));
-  const deleteAllReports   = ()   => setReports([]);
+  const deleteReport = id => {
+    setReports(current => {
+      const report = current.find(r => r.id === id);
+      if (report) {
+        setTrash(t => [{ ...report, deletedAt: new Date().toISOString(), type: 'report' }, ...t]);
+      }
+      return current.filter(r => r.id !== id);
+    });
+  };
+  
+  const deleteAllReports = () => {
+    setReports(current => {
+      if (current.length > 0) {
+        setTrash(t => [
+          ...current.map(r => ({ ...r, deletedAt: new Date().toISOString(), type: 'report' })),
+          ...t
+        ]);
+      }
+      return [];
+    });
+  };
+
   const deleteNotification = (id, role = 'admin') => {
     if (role === 'admin') setAdminNotifs(prev => prev.filter(n => n.id !== id));
     else                  setEmpNotifs(prev => prev.filter(n => n.id !== id));
   };
 
+<<<<<<< HEAD
+=======
+  /* ─── Refresh helper (call after mutations) ─── */
+  const refresh = () => {
+    // Re-trigger the useEffect by bumping a counter would work, but for now
+    // callers can just call load() — expose it if needed.
+  };
+
+  const clearTrash = () => setTrash([]);
+  const restoreFromTrash = id => {
+    setTrash(current => {
+      const item = current.find(t => t.id === id);
+      if (item) {
+        if (item.type === 'report') {
+          setReports(r => [item, ...r]);
+        } else if (item.type === 'employee') {
+          setEmployees(e => [item, ...e]);
+        }
+      }
+      return current.filter(t => t.id !== id);
+    });
+  };
+  const deleteFromTrash = id => setTrash(current => current.filter(t => t.id !== id));
+
+  const deleteEmployee = id => {
+    setEmployees(current => {
+      const employee = current.find(e => e.id === id);
+      if (employee) {
+        setTrash(t => [{ ...employee, deletedAt: new Date().toISOString(), type: 'employee' }, ...t]);
+      }
+      return current.filter(e => e.id !== id);
+    });
+  };
+
+>>>>>>> e660de545f91e336133cc9deb642064f69320ded
   return (
     <DataContext.Provider value={{
-      employees,  addEmployee,  updateEmployee,
+      employees, addEmployee, updateEmployee, deleteEmployee,
       attendance, addAttendance,
       adminNotifs, markAdminNotifRead,
       empNotifs,   markEmpNotifRead,
       reports, deleteReport, deleteAllReports,
       deleteNotification,
+<<<<<<< HEAD
       refresh,
+=======
+      trash, clearTrash, restoreFromTrash, deleteFromTrash,
+>>>>>>> e660de545f91e336133cc9deb642064f69320ded
       loading: dataLoading,
     }}>
       {children}
