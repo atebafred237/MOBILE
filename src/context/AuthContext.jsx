@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-=======
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../config';
@@ -218,4 +217,4 @@ function mapUser(apiUser, token) {
 async function clearStorage() {
   await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
 }
->>>>>>> e660de545f91e336133cc9deb642064f69320ded
+
