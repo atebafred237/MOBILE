@@ -1,25 +1,45 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Animated, SafeAreaView, KeyboardAvoidingView, Platform, Keyboard, ScrollView, Modal } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TextInput, 
+  TouchableOpacity, 
+  Image, 
+  Animated, 
+  SafeAreaView, 
+  KeyboardAvoidingView, 
+  Platform, 
+  Keyboard, 
+  ScrollView, 
+  Modal, 
+  Pressable,
+  ActivityIndicator 
+} from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { colors, spacing } from '../theme';
 import { LogOut, CheckCircle, XCircle } from 'lucide-react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { API_BASE_URL, SERVER_BASE_URL } from '../config';
 
 const KioskDashboard = () => {
-  const { logout } = useAuth();
-  const { employees, attendance, addAttendance } = useData();
+  const { logout, token } = useAuth();
+  const { employees, refresh } = useData();
   const [matricule, setMatricule] = useState('');
   const [step, setStep] = useState('input'); // 'input' | 'scanning' | 'feedback'
+  const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState(null); 
   const [currentEmployee, setCurrentEmployee] = useState(null);
   const [actionType, setActionType] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingEmployee, setPendingEmployee] = useState(null);
   const [pendingAction, setPendingAction] = useState(null);
+  const [sessionId, setSessionId] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [permission, requestPermission] = useCameraPermissions();
   
+  const cameraRef = useRef(null);
   const scannerAnim = useRef(new Animated.Value(0)).current;
 
   // Clock
@@ -43,49 +63,128 @@ const KioskDashboard = () => {
     }
   }, [step, scannerAnim]);
 
-  const handleAction = (type) => {
+  // Lookup employee from API or local cache
+  const handleAction = async (type) => {
     Keyboard.dismiss();
+    const idToSearch = matricule.trim();
     
-    if (!matricule.trim()) {
+    if (!idToSearch) {
       showFeedback('error', 'Please enter your Employee ID.', null);
       return;
     }
 
-    const emp = employees.find(e => e.matricule.toLowerCase() === matricule.trim().toLowerCase());
-    
-    if (!emp) {
-      showFeedback('error', 'Employee not found. Please check your ID.', null);
+    setLoading(true);
+
+    try {
+      // 1. Try real backend kiosk lookup API first
+      const res = await fetch(`${API_BASE_URL}/kiosk/employee/lookup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ employee_id: idToSearch }),
+      });
+
+      const json = await res.json().catch(() => null);
+
+      if (res.ok && json?.success) {
+        const empData = json.data;
+        const photoValue = empData.profile_picture ?? empData.profile_image ?? null;
+        const mappedEmp = {
+          id: empData.employee_id,
+          matricule: empData.employee_id,
+          name: empData.name,
+          department: empData.department || 'General',
+          position: empData.position || 'Staff',
+          avatar: photoValue
+            ? (photoValue.startsWith('/') ? `${SERVER_BASE_URL}${photoValue}` : photoValue)
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(empData.name || 'User')}&background=1e293b&color=fff&size=150`,
+          status: 'Active',
+        };
+        setPendingEmployee(mappedEmp);
+        setPendingAction(type);
+        setShowConfirm(true);
+        setLoading(false);
+        return;
+      } else if (json?.message) {
+        // Detailed error returned from backend
+        showFeedback('error', json.message, null, null, json.code);
+        setLoading(false);
+        return;
+      }
+    } catch (e) {
+      console.warn('API lookup error, checking local store', e);
+    } finally {
+      setLoading(false);
+    }
+
+    // Fallback: Check local context employees
+    const localEmp = employees.find(
+      e => (e.matricule && e.matricule.toLowerCase() === idToSearch.toLowerCase()) ||
+           (e.name && e.name.toLowerCase() === idToSearch.toLowerCase())
+    );
+
+    if (!localEmp) {
+      showFeedback('error', `Employee ID "${idToSearch}" not found. Please verify your ID or contact administration.`, null);
       return;
     }
 
-    if (emp.status === 'Inactive') {
-      showFeedback('error', 'Account is inactive. Please contact HR.', emp);
+    if (localEmp.status === 'Inactive') {
+      showFeedback('error', `Account for ${localEmp.name} is currently Inactive/Suspended. Please contact HR.`, localEmp);
       return;
     }
 
-    setPendingEmployee(emp);
+    setPendingEmployee(localEmp);
     setPendingAction(type);
     setShowConfirm(true);
   };
 
+  // User confirmed identity -> create session and launch face scanner
   const confirmIdentity = async () => {
     if (!permission?.granted) {
       const { granted } = await requestPermission();
-      if (!granted) {
+      if (!granted && Platform.OS !== 'web') {
         showFeedback('error', 'Camera permission is required to scan your face.', null);
         return;
       }
     }
 
     setShowConfirm(false);
-    setCurrentEmployee(pendingEmployee);
-    setActionType(pendingAction);
+    const emp = pendingEmployee;
+    const action = pendingAction;
+    setCurrentEmployee(emp);
+    setActionType(action);
     setStep('scanning');
 
-    // Simulate facial scan
+    let activeSessionId = null;
+
+    // Call backend to create attendance session
+    try {
+      const sessionRes = await fetch(`${API_BASE_URL}/kiosk/attendance/session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ employee_id: emp.matricule || emp.id }),
+      });
+
+      if (sessionRes.ok) {
+        const sessionJson = await sessionRes.json();
+        activeSessionId = sessionJson.data?.session_id;
+        setSessionId(activeSessionId);
+      }
+    } catch (e) {
+      console.warn('Failed to create kiosk attendance session:', e);
+    }
+
+    // Allow 2.8s for camera scan animation, then perform face verification
     setTimeout(() => {
-      finalizeAction(pendingEmployee, pendingAction);
-    }, 3500);
+      verifyAndRecordAttendance(emp, action, activeSessionId);
+    }, 2800);
   };
 
   const cancelIdentity = () => {
@@ -94,59 +193,101 @@ const KioskDashboard = () => {
     setPendingAction(null);
   };
 
-  const finalizeAction = (emp, type) => {
-    const currentHour = currentTime.getHours();
-    const currentMinutes = currentTime.getMinutes();
-    let status = 'Present';
-    if (type === 'check-in') {
-      if (currentHour > 9 || (currentHour === 9 && currentMinutes > 0)) {
-        status = 'Late';
+  // Perform verification and record attendance via API
+  const verifyAndRecordAttendance = async (emp, action, currentSessionId) => {
+    let base64Face = null;
+
+    // Try to capture real camera frame if supported
+    try {
+      if (cameraRef.current && cameraRef.current.takePictureAsync) {
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 0.5,
+          base64: true,
+          skipProcessing: true,
+        });
+        if (photo?.base64) {
+          base64Face = photo.base64;
+        }
       }
+    } catch (e) {
+      console.log('Camera capture info:', e);
     }
 
-    const timeString = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    // Default 1x1 transparent PNG base64 fallback for simulator/web if camera photo not available
+    if (!base64Face) {
+      base64Face = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    }
 
-    if (type === 'check-in') {
-      addAttendance({
-        employeeId: emp.id,
-        name: emp.name,
-        department: emp.department,
-        avatar: emp.avatar,
-        date: currentTime.toISOString().split('T')[0],
-        timestamp: timeString,
-        checkOut: null,
-        status: status,
-        authMethod: 'Facial Recognition',
-        location: 'Main Entrance'
+    try {
+      const verifyRes = await fetch(`${API_BASE_URL}/kiosk/attendance/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          session_id: currentSessionId,
+          employee_id: emp.matricule || emp.id,
+          face_data: base64Face,
+        }),
       });
-      showFeedback('success', 'Successfully checked in.', emp, status);
-    } else {
-      showFeedback('success', 'Successfully checked out.', emp, 'Departed');
+
+      const json = await verifyRes.json();
+
+      if (verifyRes.ok && json.success) {
+        const resultData = json.data;
+        const isCheckOut = resultData.type === 'check_out' || action === 'check-out';
+        const formattedStatus = isCheckOut ? 'Departed' : (new Date().getHours() >= 9 && new Date().getMinutes() > 0 ? 'Late' : 'Present');
+        
+        // Refresh global data so admin logs and stats instantly sync
+        refresh();
+
+        showFeedback(
+          'success', 
+          isCheckOut ? 'Successfully checked out.' : 'Successfully checked in.', 
+          emp, 
+          formattedStatus
+        );
+      } else {
+        // Detailed error information returned from server
+        const detailedError = json.message || json.error_detail || 'Face verification failed: Biometrics mismatch.';
+        showFeedback('error', detailedError, emp, null, json.code);
+      }
+    } catch (e) {
+      console.error('Kiosk verify error:', e);
+      showFeedback('error', 'Attendance verification error: Unable to connect to attendance service. Please check network connection.', emp);
     }
   };
 
-  const showFeedback = (type, message, employee, status = null) => {
-    setFeedback({ type, message, employee, status });
+  const showFeedback = (type, message, employee, status = null, errorCode = null) => {
+    setFeedback({ type, message, employee, status, errorCode });
     setStep('feedback');
     setMatricule('');
     setCurrentEmployee(null);
     setActionType(null);
+    setSessionId(null);
     
+    // Give more time for error messages so users can read the detailed explanation
+    const timeoutDuration = type === 'error' ? 6000 : 4000;
     setTimeout(() => {
       setFeedback(null);
       setStep('input');
-    }, 4000); 
+    }, timeoutDuration); 
   };
-
   return (
     <SafeAreaView style={styles.container}>
+      {/* Identity Confirmation Modal */}
       <Modal visible={showConfirm} transparent={true} animationType="none" onRequestClose={cancelIdentity}>
         <Pressable style={styles.modalBackdropCentered} onPress={cancelIdentity}>
           <Pressable style={styles.confirmDialogCard}>
             <Text style={styles.confirmDialogTitle}>Confirm Identity</Text>
             {pendingEmployee && (
               <>
-                <Image source={{ uri: pendingEmployee.avatar || 'https://i.pravatar.cc/150' }} style={styles.confirmAvatar} />
+                <Image 
+                  source={{ uri: pendingEmployee.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingEmployee.name || 'User')}&background=1e293b&color=fff&size=150` }} 
+                  style={styles.confirmAvatar} 
+                />
                 <Text style={styles.confirmDialogMessage}>
                   Are you <Text style={{ fontWeight: '700', color: colors.slate[900] }}>{pendingEmployee.name}</Text>?
                 </Text>
@@ -164,6 +305,7 @@ const KioskDashboard = () => {
         </Pressable>
       </Modal>
 
+      {/* Top Header */}
       <View style={[styles.header, { zIndex: 10, elevation: 10 }]}>
         <Image source={require('../../assets/new logo transparent.png')} style={styles.logo} resizeMode="contain" />
         <TouchableOpacity style={styles.logoutButton} onPress={logout}>
@@ -181,6 +323,7 @@ const KioskDashboard = () => {
           bounces={false} 
           keyboardShouldPersistTaps="handled"
         >
+          {/* Real-time Clock */}
           <View style={styles.timeContainer}>
             <Text style={styles.timeText}>
               {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -190,16 +333,24 @@ const KioskDashboard = () => {
             </Text>
           </View>
 
+          {/* STEP 1: Scanning Face */}
           {step === 'scanning' && currentEmployee ? (
             <View style={styles.actionCard}>
               <Text style={styles.actionTitle}>Facial Recognition</Text>
-              <Text style={styles.actionSubtitle}>Please look at the camera</Text>
+              <Text style={styles.actionSubtitle}>Please look directly into the camera</Text>
               
               <View style={styles.scannerContainer}>
                 {permission?.granted ? (
-                  <CameraView style={StyleSheet.absoluteFillObject} facing="front" />
+                  <CameraView 
+                    ref={cameraRef}
+                    style={StyleSheet.absoluteFillObject} 
+                    facing="front" 
+                  />
                 ) : (
-                  <Image source={{ uri: currentEmployee.avatar || 'https://i.pravatar.cc/150' }} style={styles.scannerAvatar} />
+                  <Image 
+                    source={{ uri: currentEmployee.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentEmployee.name || 'User')}&background=1e293b&color=fff&size=150` }} 
+                    style={styles.scannerAvatar} 
+                  />
                 )}
                 <View style={styles.scannerOverlay} />
                 <Animated.View style={[styles.scannerLine, { transform: [{ translateY: scannerAnim }] }]} />
@@ -208,18 +359,30 @@ const KioskDashboard = () => {
               <Text style={styles.scannerText}>Authenticating {currentEmployee.name}...</Text>
             </View>
           ) : step === 'feedback' && feedback ? (
-            <View style={styles.feedbackCard}>
+            /* STEP 2: Feedback (Success or Error) */
+            <View style={[styles.feedbackCard, feedback.type === 'error' && styles.feedbackCardError]}>
               {feedback.type === 'success' ? (
                 <CheckCircle size={64} color={colors.success || '#10b981'} style={styles.feedbackIcon} />
               ) : (
                 <XCircle size={64} color={colors.danger || '#ef4444'} style={styles.feedbackIcon} />
               )}
               
-              <Text style={styles.feedbackMessage}>{feedback.message}</Text>
+              <Text style={[styles.feedbackTitle, feedback.type === 'error' && { color: colors.danger || '#ef4444' }]}>
+                {feedback.type === 'success' ? 'Verification Successful' : 'Verification Issue Detected'}
+              </Text>
               
+              <View style={[styles.feedbackMessageBox, feedback.type === 'error' && styles.feedbackErrorBox]}>
+                <Text style={[styles.feedbackMessage, feedback.type === 'error' && styles.feedbackErrorMessage]}>
+                  {feedback.message}
+                </Text>
+              </View>
+
               {feedback.employee && (
                 <View style={styles.employeeInfo}>
-                  <Image source={{ uri: feedback.employee.avatar || 'https://i.pravatar.cc/150' }} style={styles.employeeAvatar} />
+                  <Image 
+                    source={{ uri: feedback.employee.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(feedback.employee.name || 'User')}&background=1e293b&color=fff&size=150` }} 
+                    style={styles.employeeAvatar} 
+                  />
                   <Text style={styles.employeeName}>{feedback.employee.name}</Text>
                   <Text style={styles.employeeDept}>{feedback.employee.department} • {feedback.employee.position}</Text>
                   {feedback.status && (
@@ -229,29 +392,59 @@ const KioskDashboard = () => {
                   )}
                 </View>
               )}
+
+              <TouchableOpacity 
+                style={[styles.dismissButton, feedback.type === 'error' ? styles.dismissButtonError : styles.dismissButtonSuccess]} 
+                onPress={() => {
+                  setFeedback(null);
+                  setStep('input');
+                }}
+              >
+                <Text style={[styles.dismissButtonText, feedback.type === 'error' && { color: '#ef4444' }]}>
+                  {feedback.type === 'error' ? 'Retry / Scan Again' : 'Done'}
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : (
+            /* STEP 3: Initial Input State */
             <View style={styles.actionCard}>
               <Text style={styles.actionTitle}>Welcome to Presenza</Text>
               <Text style={styles.actionSubtitle}>Enter your Employee ID to check in or out</Text>
               
               <TextInput
                 style={styles.input}
-                placeholder="e.g. EMP-0042"
+                placeholder="e.g. EMP001"
                 placeholderTextColor={colors.slate[400]}
                 value={matricule}
                 onChangeText={setMatricule}
                 autoCapitalize="characters"
                 autoCorrect={false}
+                onSubmitEditing={() => handleAction('check-in')}
               />
               
               <View style={styles.buttonRow}>
-                <TouchableOpacity style={[styles.button, styles.buttonCheckIn]} onPress={() => handleAction('check-in')}>
-                  <Text style={styles.buttonText}>Check In</Text>
+                <TouchableOpacity 
+                  style={[styles.button, styles.buttonCheckIn]} 
+                  onPress={() => handleAction('check-in')}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color={colors.white} />
+                  ) : (
+                    <Text style={styles.buttonText}>Check In</Text>
+                  )}
                 </TouchableOpacity>
                 
-                <TouchableOpacity style={[styles.button, styles.buttonCheckOut]} onPress={() => handleAction('check-out')}>
-                  <Text style={[styles.buttonText, styles.buttonTextDark]}>Check Out</Text>
+                <TouchableOpacity 
+                  style={[styles.button, styles.buttonCheckOut]} 
+                  onPress={() => handleAction('check-out')}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color={colors.slate[700]} />
+                  ) : (
+                    <Text style={[styles.buttonText, styles.buttonTextDark]}>Check Out</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -393,21 +586,71 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.slate[100],
+  },
+  feedbackCardError: {
+    borderColor: '#fecaca',
+    backgroundColor: '#fff',
   },
   feedbackIcon: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
-  feedbackMessage: {
-    fontSize: 24,
-    fontWeight: '700',
+  feedbackTitle: {
+    fontSize: 22,
+    fontWeight: '800',
     color: colors.slate[900],
     textAlign: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
+  },
+  feedbackMessageBox: {
+    width: '100%',
+    padding: spacing.md,
+    borderRadius: 12,
+    backgroundColor: colors.slate[50],
+    marginBottom: spacing.lg,
+  },
+  feedbackErrorBox: {
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#f87171',
+  },
+  feedbackMessage: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.slate[700],
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  feedbackErrorMessage: {
+    color: '#991b1b',
+    fontWeight: '600',
+  },
+  dismissButton: {
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: 12,
+    backgroundColor: colors.slate[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  dismissButtonError: {
+    backgroundColor: '#fee2e2',
+  },
+  dismissButtonSuccess: {
+    backgroundColor: colors.slate[100],
+  },
+  dismissButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.slate[700],
   },
   employeeInfo: {
     alignItems: 'center',
     width: '100%',
-    paddingTop: spacing.xl,
+    paddingTop: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: colors.slate[100],
   },

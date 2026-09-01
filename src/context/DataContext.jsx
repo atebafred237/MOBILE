@@ -1,12 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, SERVER_BASE_URL } from '../config';
 
 const DataContext = createContext();
+// Helper to normalize avatar URLs consistently
+const normalizeAvatarUrl = (img, fallback = null) => {
+  if (!img) return fallback;
+  if (img.startsWith('http://') || img.startsWith('https://')) return img;
+  if (img.startsWith('blob:') || img.startsWith('data:')) return img;
+  const normalizedPath = img.startsWith('/') ? img : `/${img}`;
+  return `${SERVER_BASE_URL}${normalizedPath}`;
+};
 
 export const DataProvider = ({ children }) => {
   const { token, user } = useAuth();
-
   const [employees,  setEmployees]  = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [adminNotifs, setAdminNotifs] = useState([]);
@@ -41,7 +48,13 @@ export const DataProvider = ({ children }) => {
               department: e.department ?? '',
               position:   e.position ?? '',
               matricule:  e.employee_code ?? '',
-              avatar:     e.profile_image ?? e.user?.profile_image ?? `https://i.pravatar.cc/150?u=${e.user?.email || e.id}`,
+              avatar:     (() => {
+                const img = e.reference_photo_path ?? e.profile_image ?? e.user?.profile_image ?? e.user?.avatar;
+                if (!img) return `https://ui-avatars.com/api/?name=${encodeURIComponent(e.full_name || e.user?.email || 'User')}&background=1e293b&color=fff&size=150`;
+                  if (img.startsWith('http://') || img.startsWith('https://')) return img;
+                  const normalizedPath = img.startsWith('/') ? img : `/${img}`;
+                  return `${SERVER_BASE_URL}${normalizedPath}`;
+              })(),
               status:     e.status === 'active' ? 'Active' : 'Inactive',
             })));
           } else {
@@ -62,6 +75,11 @@ export const DataProvider = ({ children }) => {
               timeOut:    a.check_out_at,
               status:     a.status,
               method:     a.entry_method ?? 'manual',
+              avatar:     (() => {
+                const img = a.employee?.reference_photo_path ?? a.employee?.profile_image ?? a.employee?.user?.profile_image ?? a.employee?.user?.avatar;
+                if (!img) return `https://ui-avatars.com/api/?name=${encodeURIComponent(a.employee?.full_name || 'User')}&background=1e293b&color=fff&size=150`;
+                 return normalizeAvatarUrl(img);
+              })(),
             })));
           } else {
             console.warn('Attendance fetch failed:', attRes.status);
@@ -128,6 +146,68 @@ export const DataProvider = ({ children }) => {
     load();
   }, [token, user]);
 
+  const refresh = async () => {
+    if (!token || !user) return;
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+    };
+
+    try {
+      if (user.role === 'admin' || user.role === 'supervisor') {
+        const [empRes, attRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/admin/employees`, { headers }),
+          fetch(`${API_BASE_URL}/admin/attendance`, { headers })
+        ]);
+
+        if (empRes.ok) {
+          const empJson = await empRes.json();
+          const raw = empJson.data?.data ?? empJson.data ?? [];
+          setEmployees(raw.map(e => ({
+            id:         e.id,
+            name:       e.full_name,
+            role:       e.position ?? 'Staff',
+            email:      e.user?.email ?? e.email ?? '',
+            phone:      e.phone ?? '',
+            department: e.department ?? '',
+            position:   e.position ?? '',
+            matricule:  e.employee_code ?? '',
+            avatar:     (() => {
+              const img = e.reference_photo_path ?? e.profile_image ?? e.user?.profile_image ?? e.user?.avatar;
+              if (!img) return `https://ui-avatars.com/api/?name=${encodeURIComponent(e.full_name || e.user?.email || 'User')}&background=1e293b&color=fff&size=150`;
+                return normalizeAvatarUrl(img);
+            })(),
+            status:     e.status === 'active' ? 'Active' : 'Inactive',
+          })));
+        }
+
+        if (attRes.ok) {
+          const attJson = await attRes.json();
+          const raw = attJson.data?.data ?? attJson.data ?? [];
+          setAttendance(raw.map(a => ({
+            id:         a.id,
+            employeeId: a.employee?.employee_code ?? a.employee_id,
+            name:       a.employee?.full_name ?? `Employee #${a.employee_id}`,
+            department: a.employee?.department ?? 'General',
+            avatar:     (() => {
+              const img = a.employee?.reference_photo_path ?? a.employee?.profile_image ?? a.employee?.user?.profile_image ?? a.employee?.user?.avatar;
+              if (!img) return `https://ui-avatars.com/api/?name=${encodeURIComponent(a.employee?.full_name || 'User')}&background=1e293b&color=fff&size=150`;
+                return normalizeAvatarUrl(img);
+            })(),
+            date:       a.attendance_date,
+            timestamp:  a.check_in_at ? new Date(a.check_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null,
+            checkOut:   a.check_out_at ? new Date(a.check_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null,
+            status:     a.status ? (a.status.charAt(0).toUpperCase() + a.status.slice(1)) : 'Present',
+            method:     a.check_in_method ?? 'Kiosk',
+            location:   'Main Entrance',
+          })));
+        }
+      }
+    } catch (e) {
+      console.error('API Data refresh error', e);
+    }
+  };
+
   /* ─── Mutations (local state for now) ─── */
   const addEmployee = (emp) =>
     setEmployees(prev => [{ ...emp, id: Date.now() }, ...prev]);
@@ -159,12 +239,6 @@ export const DataProvider = ({ children }) => {
     else                  setEmpNotifs(prev => prev.filter(n => n.id !== id));
   };
 
-  /* ─── Refresh helper (call after mutations) ─── */
-  const refresh = () => {
-    // Re-trigger the useEffect by bumping a counter would work, but for now
-    // callers can just call load() — expose it if needed.
-  };
-
   return (
     <DataContext.Provider value={{
       employees,  addEmployee,  updateEmployee,
@@ -173,6 +247,7 @@ export const DataProvider = ({ children }) => {
       empNotifs,   markEmpNotifRead,
       reports, deleteReport, deleteAllReports,
       deleteNotification,
+      refresh,
       loading: dataLoading,
     }}>
       {children}

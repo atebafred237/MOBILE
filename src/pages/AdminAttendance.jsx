@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Platform } from 'react-native';
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Download, Search } from 'lucide-react-native';
 import { colors, spacing } from '../theme';
 import { useData } from '../context/DataContext';
 
 const STATUS_OPTIONS = ['All Statuses', 'Present', 'Late', 'Absent'];
-const WEEKDAYS = ['All Days', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const WEEKDAYS = ['All Days', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 const AdminAttendance = () => {
 	const { attendance: rawAttendance } = useData();
@@ -31,7 +31,7 @@ const AdminAttendance = () => {
 				totalHours,
 				authMethod: a.method || 'Facial Recognition',
 				location: a.location || 'Main Office',
-				avatar: a.avatar || `https://i.pravatar.cc/150?u=${a.name || a.employeeId}`,
+				avatar: a.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name || 'User')}&background=1e293b&color=fff&size=150`,
 			};
 		});
 	}, [rawAttendance]);
@@ -70,6 +70,38 @@ const AdminAttendance = () => {
 		</View>
 	) : null;
 
+	const exportAttendance = () => {
+		const header = ['Employee Name', 'Employee ID', 'Date', 'Check-in', 'Check-out', 'Duration', 'Status', 'Method', 'Location'];
+		const rows = filteredAttendance.map(record => [
+			record.name,
+			`EMP-${String(record.employeeId).padStart(4, '0')}`,
+			record.date,
+			record.timestamp,
+			record.checkOut,
+			record.totalHours,
+			record.status,
+			record.authMethod,
+			record.location
+		]);
+		
+		const csv = [header, ...rows]
+			.map(row => row.map(value => `"${String(value || '').replace(/"/g, '""')}"`).join(','))
+			.join('\n');
+
+		if (Platform.OS === 'web') {
+			const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = 'attendance-report.csv';
+			link.click();
+			URL.revokeObjectURL(url);
+			return;
+		}
+
+		Alert.alert('Export Complete', 'The attendance report has been generated successfully.');
+	};
+
 	return (
 		<ScrollView style={styles.container} contentContainerStyle={styles.content}>
 			<View style={styles.headingBlock}>
@@ -77,7 +109,7 @@ const AdminAttendance = () => {
 				<Text style={styles.description}>Details of all employee check-in and check-out activity.</Text>
 			</View>
 
-			<TouchableOpacity style={styles.exportButton} onPress={() => Alert.alert('Export Report', 'Attendance report export is ready to be connected.')}>
+			<TouchableOpacity style={styles.exportButton} onPress={exportAttendance}>
 				<Download size={18} color={colors.white} />
 				<Text style={styles.exportButtonText}>Export Report</Text>
 			</TouchableOpacity>
@@ -131,7 +163,10 @@ const AdminAttendance = () => {
 						{paginatedAttendance.map(record => (
 							<View key={record.id} style={styles.tableRow}>
 								<View style={[styles.employeeCell, styles.employeeColumn]}>
-									<Image source={{ uri: record.avatar }} style={styles.employeeAvatar} />
+									<Image 
+										source={{ uri: record.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(record.name || 'User')}&background=1e293b&color=fff&size=150` }} 
+										style={styles.employeeAvatar} 
+									/>
 									<View><Text style={styles.employeeName}>{record.name}</Text><Text style={styles.employeeId}>EMP-{String(record.employeeId).padStart(4, '0')}</Text></View>
 								</View>
 								<Text style={styles.tableCell}>{record.timestamp}</Text>

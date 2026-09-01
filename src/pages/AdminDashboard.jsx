@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Alert, View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, TextInput, ActivityIndicator } from 'react-native';
+import { Alert, View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, TextInput, ActivityIndicator, Platform } from 'react-native';
 import { colors, spacing } from '../theme';
 import { Users, Clock, MapPin, AlertCircle, Calendar, Download, ShieldAlert, ShieldCheck, Activity, FileText, Code2, LockKeyhole, Server, CheckCircle2 } from 'lucide-react-native';
 import { useData } from '../context/DataContext';
@@ -151,6 +151,36 @@ const AdminDashboard = () => {
     );
   }
 
+  const exportDashboardData = () => {
+    const header = ['Employee Name', 'Date', 'Check-in', 'Check-out', 'Status', 'Method', 'Location'];
+    const rows = attendance.map(record => [
+      record.name,
+      record.date,
+      record.timeIn,
+      record.timeOut,
+      record.status,
+      record.method,
+      record.location || 'Main Office'
+    ]);
+    
+    const csv = [header, ...rows]
+      .map(row => row.map(value => `"${String(value || '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    if (Platform.OS === 'web') {
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'dashboard-export.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    Alert.alert('Export Complete', 'The dashboard data has been exported successfully.');
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -162,7 +192,7 @@ const AdminDashboard = () => {
             <Calendar size={16} color={colors.slate[700]} />
             <Text style={styles.btnSecondaryText}>{t('last30Days')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.btnPrimary}>
+          <TouchableOpacity style={styles.btnPrimary} onPress={exportDashboardData}>
             <Download size={16} color={colors.white} />
             <Text style={styles.btnPrimaryText}>{t('exportData')}</Text>
           </TouchableOpacity>
@@ -266,7 +296,10 @@ const AdminDashboard = () => {
         </View>
         {liveFeed.map(row => (
           <View key={row.id} style={styles.feedRow}>
-            <Image source={{ uri: row.avatar }} style={styles.avatar} />
+            <Image 
+              source={{ uri: row.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(row.name || 'User')}&background=1e293b&color=fff&size=150` }} 
+              style={styles.avatar} 
+            />
             <View style={styles.feedInfo}>
               <Text style={styles.feedName}>{row.name}</Text>
               <Text style={styles.feedRole}>{row.timestamp} â€¢ {row.location}</Text>

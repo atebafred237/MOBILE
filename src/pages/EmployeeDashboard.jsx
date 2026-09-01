@@ -4,7 +4,7 @@ import { CalendarDays, CheckCircle2, ChevronRight, Clock3, XCircle } from 'lucid
 import { useNavigation } from '@react-navigation/native';
 import AttendanceTrendChartCard from '../components/AttendanceTrendChartCard';
 import { colors, spacing } from '../theme';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, getProfileAvatarUri } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -90,6 +90,7 @@ const EmployeeDashboard = () => {
   const firstName = user?.name?.split(' ')[0] || 'Employee';
   const statusText = todayRecord ? t(todayRecord.status.toLowerCase()) : t('noRecordYet');
   const statusMeta = todayRecord ? `${todayRecord.timestamp} - ${todayRecord.checkOut}` : t('checkInNotRecorded');
+  const profileImage = getProfileAvatarUri(user, user?.name || user?.email || 'Employee');
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -99,7 +100,13 @@ const EmployeeDashboard = () => {
 
       <View style={styles.heroCard}>
         <View style={styles.heroTopRow}>
-          <Text style={styles.cardEyebrow}>Today�s attendance</Text>
+          <View style={styles.heroProfileRow}>
+            <Image source={{ uri: profileImage }} style={styles.heroAvatar} />
+            <View style={styles.heroProfileCopy}>
+              <Text style={styles.cardEyebrow}>Today&apos;s attendance</Text>
+              <Text style={styles.heroName}>{user?.name || 'Employee'}</Text>
+            </View>
+          </View>
           <View style={styles.iconBadge}>
             {todayRecord?.status === 'Absent' ? <XCircle size={18} color={colors.white} /> : <CheckCircle2 size={18} color={colors.white} />}
           </View>
@@ -233,6 +240,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  heroProfileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  heroAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#dfe7e5',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.6)',
+  },
+  heroProfileCopy: {
+    flex: 1,
+  },
+  heroName: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '800',
+    marginTop: 2,
   },
   cardEyebrow: {
     color: '#dfe7e5',

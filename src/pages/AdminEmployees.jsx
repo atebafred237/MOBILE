@@ -98,7 +98,7 @@ const AdminEmployees = () => {
         email: `${newEmpName.split(' ')[0].toLowerCase()}@attendance.com`,
         phone: '+1 234 567 8900',
         status: newEmpStatus ? 'Active' : 'Inactive',
-        avatar: 'https://i.pravatar.cc/150',
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(newEmpName)}&background=1e293b&color=fff&size=150`,
       });
       showDialog('Success', 'Employee added successfully.', 'alert');
     }
@@ -164,7 +164,7 @@ const AdminEmployees = () => {
             return (
               <View key={employee.id} style={styles.card}>
                 <View style={styles.cardHeader}>
-                  <Image source={{ uri: employee.avatar || 'https://i.pravatar.cc/150' }} style={styles.avatar} />
+                  <Image source={{ uri: employee.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name || 'User')}&background=1e293b&color=fff&size=150` }} style={styles.avatar} />
                   <View style={styles.cardInfo}>
                     <Text style={styles.empName}>{employee.name}</Text>
                     <Text style={styles.empRole}>{employee.role} • {employee.department}</Text>
