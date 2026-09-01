@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { Alert, View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Alert, View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, TextInput, ActivityIndicator } from 'react-native';
 import { colors, spacing } from '../theme';
 import { Users, Clock, MapPin, AlertCircle, Calendar, Download, ShieldAlert, ShieldCheck, Activity, FileText, Code2, LockKeyhole, Server, CheckCircle2 } from 'lucide-react-native';
-import { dashboardStats, methodsOfEntry } from '../data/mockData';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { API_BASE_URL } from '../config';
 import AttendanceTrendChartCard from '../components/AttendanceTrendChartCard';
 
 const StatCard = ({ title, value, icon: Icon, change }) => (
@@ -87,11 +88,50 @@ const getAttendanceTrendData = (attendance, period) => {
 
 const AdminDashboard = () => {
   const { attendance, adminNotifs } = useData();
+  const { user } = useAuth();
   const { t } = useLanguage();
   const [selectedPeriod, setSelectedPeriod] = useState('Week');
   const [feedFilter, setFeedFilter] = useState('All');
   const [searchText, setSearchText] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
+  
+  const [overview, setOverview] = useState(null);
+  const [methods, setMethods] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const headers = { Authorization: `Bearer ${user.token}`, Accept: 'application/json' };
+        const [overviewRes, methodsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/v1/admin/dashboard/overview`, { headers }),
+          fetch(`${API_BASE_URL}/api/v1/admin/dashboard/entry-methods`, { headers })
+        ]);
+        
+        if (overviewRes.ok && methodsRes.ok) {
+          const overviewData = await overviewRes.json();
+          const methodsData = await methodsRes.json();
+          setOverview(overviewData.data);
+          
+          // Calculate percentages for methods
+          const totalMethods = methodsData.data.reduce((sum, item) => sum + item.count, 0);
+          const mappedMethods = methodsData.data.map(item => ({
+            method: item.label,
+            percentage: totalMethods > 0 ? Math.round((item.count / totalMethods) * 100) : 0,
+            count: item.count
+          })).sort((a, b) => b.percentage - a.percentage);
+          
+          setMethods(mappedMethods);
+        }
+      } catch (err) {
+        console.error('Failed to fetch admin dashboard stats:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (user?.token) fetchDashboardData();
+  }, [user]);
+
   const liveFeed = attendance
     .filter(record => feedFilter === 'All' || record.status === feedFilter)
     .filter(record => {
@@ -104,6 +144,14 @@ const AdminDashboard = () => {
   const verifiedRecords = attendance.filter(record => record.status === 'Present' || record.status === 'Late').length;
   const verificationAccuracy = attendance.length ? ((verifiedRecords / attendance.length) * 100).toFixed(1) : '0.0';
   const trendData = getAttendanceTrendData(attendance, selectedPeriod);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -129,10 +177,10 @@ const AdminDashboard = () => {
       </View>
 
       <View style={styles.metricsGrid}>
-        <StatCard title={t('totalEmployees')} value={dashboardStats.totalEmployees.value} icon={Users} change={dashboardStats.totalEmployees.change} />
-        <StatCard title={t('averageAttendance')} value={dashboardStats.avgAttendance.value} icon={Clock} change={dashboardStats.avgAttendance.change} />
-        <StatCard title={t('activeLocations')} value={dashboardStats.activeLocations.value} icon={MapPin} change={dashboardStats.activeLocations.change} />
-        <StatCard title={t('pendingAlerts')} value={dashboardStats.pendingAlerts.value} icon={AlertCircle} change={dashboardStats.pendingAlerts.change} />
+        <StatCard title={t('totalEmployees')} value={overview?.total_employees || 0} icon={Users} change="Current" />
+        <StatCard title={t('averageAttendance')} value={`${overview?.average_attendance || 0}%`} icon={Clock} change="Monthly Avg" />
+        <StatCard title={t('activeLocations')} value={overview?.active_locations || 0} icon={MapPin} change="Active" />
+        <StatCard title={t('pendingAlerts')} value={overview?.pending_alerts || 0} icon={AlertCircle} change="Unread" />
       </View>
 
       <View style={styles.analyticsRow}>
@@ -143,7 +191,7 @@ const AdminDashboard = () => {
         />
         <View style={styles.methodCard}>
           <Text style={styles.sectionTitle}>{t('methodOfEntry')}</Text>
-          {methodsOfEntry.map((item, idx) => (
+          {(methods || []).map((item, idx) => (
             <View key={idx} style={styles.progressRow}>
               <View style={styles.progressLabel}>
                 <Text style={styles.progressText}>{item.method}</Text>

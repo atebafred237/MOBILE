@@ -21,8 +21,30 @@ const EmployeeAttendance = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const todayISO = new Date().toISOString().split('T')[0];
 
-  const employeeId = Number(user?.matricule?.replace(/\D/g, '')) || 42;
-  const records = attendance.filter(record => record.employeeId === employeeId);
+  const records = React.useMemo(() => {
+    return attendance.map(a => {
+      const checkInDate = a.timeIn ? new Date(a.timeIn) : null;
+      const checkOutDate = a.timeOut ? new Date(a.timeOut) : null;
+
+      const formatTime = d => d ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '---';
+
+      let totalHours = '0h';
+      if (checkInDate && checkOutDate) {
+        const diffMs = checkOutDate - checkInDate;
+        const diffHrs = Math.floor(diffMs / 3600000);
+        const diffMins = Math.floor((diffMs % 3600000) / 60000);
+        totalHours = `${diffHrs}h ${diffMins}m`;
+      }
+
+      return {
+        ...a,
+        status: a.status ? (a.status.charAt(0).toUpperCase() + a.status.slice(1)) : 'Absent',
+        timestamp: formatTime(checkInDate),
+        checkOut: formatTime(checkOutDate),
+        totalHours
+      };
+    });
+  }, [attendance]);
 
   const getDateRangeRecords = (dateString, range) => {
     const selected = new Date(`${dateString}T00:00:00`);

@@ -66,7 +66,7 @@ const Settings = () => {
 	const [supportInput, setSupportInput] = useState('');
 	const [supportMessages, setSupportMessages] = useState([{ id: 'welcome', role: 'assistant', text: 'Hi! I can help you complete tasks in Presenza. What would you like to do?' }]);
 	const [accountEmail, setAccountEmail] = useState(user?.email || '');
-	const [accountPhone, setAccountPhone] = useState(user?.phone || '+237 690 12 34 56');
+	const [accountPhone, setAccountPhone] = useState(user?.phone || '');
 	const [accountSaved, setAccountSaved] = useState(false);
 	const screenAnimation = useRef(new Animated.Value(0)).current;
 	const selectedOption = SETTINGS_OPTIONS.find(option => option.key === selectedKey);

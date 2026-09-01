@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Image, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Keyboard, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import { Image, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Keyboard, TouchableWithoutFeedback, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { colors, spacing } from '../theme';
@@ -9,6 +9,16 @@ import { useLanguage } from '../context/LanguageContext';
 const SignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  // Auto-dismiss error after 4 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(''), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -31,9 +41,17 @@ const SignIn = () => {
   }, []);
 
   const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter your email and password.');
+      return;
+    }
+    setError('');
     setLoading(true);
-    await login(email, password);
+    const result = await login(email.trim(), password);
     setLoading(false);
+    if (!result.success) {
+      setError(result.error || 'Login failed. Please try again.');
+    }
   };
 
   const handleForgotPassword = () => {
@@ -46,74 +64,83 @@ const SignIn = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
-      <Pressable style={styles.inner} onPress={Keyboard.dismiss}>
-        <Image
-          source={require('../../assets/new logo transparent.png')}
-          style={[styles.logo, keyboardVisible && styles.logoCompact]}
-          resizeMode="contain"
-        />
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.inner}>
+          <Image
+            source={require('../../assets/new logo transparent.png')}
+            style={[styles.logo, keyboardVisible && styles.logoCompact]}
+            resizeMode="contain"
+          />
 
-        <View style={[styles.card, keyboardVisible && styles.cardCompact]}>
-          <Text style={styles.title}>{t('welcomeBack')}</Text>
-          <Text style={styles.subtitle}>{t('credentialsSubtitle')}</Text>
+          <View style={[styles.card, keyboardVisible && styles.cardCompact]}>
+            <Text style={styles.title}>{t('welcomeBack')}</Text>
+            <Text style={styles.subtitle}>{t('credentialsSubtitle')}</Text>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{t('emailAddress')}</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="admin@example.com"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-          </View>
+            {/* ── Inline error box above email ── */}
+            {error ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorBoxText}>{error}</Text>
+              </View>
+            ) : null}
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{t('password')}</Text>
-            <View style={styles.passwordWrap}>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>{t('emailAddress')}</Text>
               <TextInput
-                style={styles.inputWithIcon}
-                placeholder="••••••••"
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
+                style={[styles.input, error && styles.inputError]}
+                placeholder="admin@example.com"
+                value={email}
+                onChangeText={(v) => { setEmail(v); if (error) setError(''); }}
+                autoCapitalize="none"
+                keyboardType="email-address"
               />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowPassword((value) => !value)}
-                accessibilityRole="button"
-                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? (
-                  <EyeOff size={20} color={colors.slate[400]} />
-                ) : (
-                  <Eye size={20} color={colors.slate[400]} />
-                )}
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>{t('password')}</Text>
+              <View style={styles.passwordWrap}>
+                <TextInput
+                  style={[styles.inputWithIcon, error && styles.inputError]}
+                  placeholder="••••••••"
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={(v) => { setPassword(v); if (error) setError(''); }}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword((value) => !value)}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff size={20} color={colors.slate[400]} />
+                  ) : (
+                    <Eye size={20} color={colors.slate[400]} />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.optionsRow}>
+              <View style={{ flex: 1 }} />
+              <TouchableOpacity onPress={handleForgotPassword}>
+                <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
               </TouchableOpacity>
             </View>
-          </View>
 
-          <View style={styles.optionsRow}>
-            <View style={{ flex: 1 }} />
-            <TouchableOpacity onPress={handleForgotPassword}>
-              <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.buttonText}>{t('signIn')}</Text>
+              )}
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <Text style={styles.buttonText}>{t('signIn')}</Text>
-            )}
-          </TouchableOpacity>
         </View>
-      </Pressable>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 };
@@ -121,7 +148,6 @@ const SignIn = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.slate[50],
     justifyContent: 'center',
     padding: spacing.md,
   },
@@ -256,6 +282,23 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  errorBox: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#EF4444',
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginBottom: spacing.sm,
+  },
+  errorBoxText: {
+    color: '#991B1B',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  inputError: {
+    borderColor: '#EF4444',
   },
 });
 
