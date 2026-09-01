@@ -99,7 +99,9 @@ const KioskDashboard = () => {
           department: empData.department || 'General',
           position: empData.position || 'Staff',
           avatar: photoValue
-            ? (photoValue.startsWith('/') ? `${SERVER_BASE_URL}${photoValue}` : photoValue)
+            ? (photoValue.startsWith('http://') || photoValue.startsWith('https://')
+              ? photoValue
+              : `${SERVER_BASE_URL}${photoValue.startsWith('/') ? photoValue : `/${photoValue}`}`)
             : `https://ui-avatars.com/api/?name=${encodeURIComponent(empData.name || 'User')}&background=1e293b&color=fff&size=150`,
           status: 'Active',
         };

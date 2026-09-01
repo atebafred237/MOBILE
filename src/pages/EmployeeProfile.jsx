@@ -30,6 +30,7 @@ import { colors, spacing } from '../theme';
 import { useAuth, getProfileAvatarUri } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
+import ProfileAvatar from '../components/ProfileAvatar';
 
 const EmployeeProfile = () => {
   const { user, updateProfile, updateProfilePicture } = useAuth();
@@ -46,6 +47,8 @@ const EmployeeProfile = () => {
 
   // Use the canonical employee reference photo when available, but keep a local preview until the server confirms the upload.
   const currentAvatarUri = localAvatarUri || getProfileAvatarUri(user, user?.name || 'User');
+  console.log('🔥 CURRENT AVATAR URI:', currentAvatarUri);
+  console.log('🔥 CURRENT USER:', JSON.stringify(user, null, 2));
 
   // Pick from Gallery
   const handlePickFromGallery = async () => {
@@ -163,7 +166,7 @@ const EmployeeProfile = () => {
             style={styles.avatarTouch}
           >
             <View style={styles.avatarRing}>
-              <Image source={{ uri: currentAvatarUri }} style={styles.avatar} />
+              <ProfileAvatar uri={currentAvatarUri} name={user?.name} style={styles.avatar} />
               {uploadingAvatar && (
                 <View style={styles.avatarLoadingOverlay}>
                   <ActivityIndicator size="small" color={colors.white} />
@@ -336,8 +339,9 @@ const EmployeeProfile = () => {
             <X size={28} color={colors.white} />
           </TouchableOpacity>
           
-          <Image 
-            source={{ uri: currentAvatarUri }} 
+          <ProfileAvatar
+            uri={currentAvatarUri}
+            name={user?.name}
             style={styles.fullscreenImage} 
             resizeMode="contain" 
           />

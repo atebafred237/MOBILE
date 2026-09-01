@@ -7,6 +7,7 @@ import { colors, spacing } from '../theme';
 import { useAuth, getProfileAvatarUri } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
+import ProfileAvatar from '../components/ProfileAvatar';
 
 const getTrendData = (records, period) => {
   const labels = period === 'Month' ? ['W1', 'W2', 'W3', 'W4'] : period === 'Day' ? ['6a', '9a', '12p', '3p', '6p'] : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -101,7 +102,7 @@ const EmployeeDashboard = () => {
       <View style={styles.heroCard}>
         <View style={styles.heroTopRow}>
           <View style={styles.heroProfileRow}>
-            <Image source={{ uri: profileImage }} style={styles.heroAvatar} />
+            <ProfileAvatar uri={profileImage} name={user?.name} style={styles.heroAvatar} />
             <View style={styles.heroProfileCopy}>
               <Text style={styles.cardEyebrow}>Today&apos;s attendance</Text>
               <Text style={styles.heroName}>{user?.name || 'Employee'}</Text>

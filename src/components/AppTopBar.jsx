@@ -7,6 +7,7 @@ import { useData } from '../context/DataContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme';
 import { useTheme } from '../context/ThemeContext';
+import ProfileAvatar from './ProfileAvatar';
 
 const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
   const { user, logout } = useAuth();
@@ -55,7 +56,7 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
           {unreadCount > 0 && <View style={styles.notificationBadge}><Text style={styles.notificationCount}>{unreadCount}</Text></View>}
         </TouchableOpacity>
         <TouchableOpacity style={styles.profileButton} onPress={() => { setProfileMenuVisible(value => !value); setNotificationsVisible(false); }} accessibilityLabel="Open profile menu">
-          <Image source={{ uri: profileAvatarUri }} style={styles.profileAvatar} />
+          <ProfileAvatar uri={profileAvatarUri} name={user?.name} style={styles.profileAvatar} />
         </TouchableOpacity>
       </View>
       {notificationsVisible && (
@@ -90,7 +91,7 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
             <TouchableOpacity style={styles.modalBackdrop} onPress={() => setProfileMenuVisible(false)} accessibilityLabel="Close profile menu" />
             <Animated.View style={[styles.profileMenu, isDark && styles.darkMenu, isAttendance && styles.attendanceProfileMenu, popupStyle]}>
           <View style={styles.profileMenuHeader}>
-            <Image source={{ uri: profileAvatarUri }} style={styles.menuAvatar} />
+            <ProfileAvatar uri={profileAvatarUri} name={user?.name} style={styles.menuAvatar} />
             <View><Text style={styles.menuTitle}>{user?.name || 'User Profile'}</Text><Text style={styles.menuEmail}>{user?.email || 'user@example.com'}</Text></View>
           </View>
           <View style={styles.menuDivider} />
