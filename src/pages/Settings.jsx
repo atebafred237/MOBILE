@@ -132,6 +132,7 @@ const Settings = () => {
 
 				const previousMessages = supportMessages
 					.filter(message => message.id !== 'welcome')
+					.slice(-19)
 					.map(message => ({ role: message.role, content: message.text }));
 
 				setSupportMessages(current => [...current, { id: `${Date.now()}-user`, role: 'user', text: question }]);

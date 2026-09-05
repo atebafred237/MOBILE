@@ -24,7 +24,6 @@ import AccessOptions from '../pages/AccessOptions';
 import PricingPlans from '../pages/PricingPlans';
 import CompanySetup from '../pages/CompanySetup';
 import AdminDashboard from '../pages/AdminDashboard';
-import AdminEmployees from '../pages/AdminEmployees';
 import AdminAttendance from '../pages/AdminAttendance';
 import AdminManagement from '../pages/AdminManagement';
 import Settings from '../pages/Settings';
@@ -67,7 +66,6 @@ const withEmployeeTopBar = Screen => props => (
 );
 
 const AdminDashboardWithTopBar = withAdminTopBar(AdminDashboard);
-const AdminEmployeesWithTopBar = withAdminTopBar(AdminEmployees);
 const AdminAttendanceWithTopBar = withAdminTopBar(AdminAttendance);
 const AdminManagementWithTopBar = withAdminTopBar(AdminManagement);
 const AdminSettingsWithTopBar = withAdminTopBar(Settings);
@@ -101,14 +99,6 @@ const AdminTabsContent = () => {
       options={{ 
         title: t('dashboard'),
         tabBarIcon: ({ color, size }) => <Home color={color} size={size} strokeWidth={2} /> 
-      }} 
-    />
-    <Tab.Screen 
-      name="AdminEmployees" 
-      component={AdminEmployeesWithTopBar} 
-      options={{ 
-        title: t('employees'),
-        tabBarIcon: ({ color, size }) => <Users color={color} size={size} strokeWidth={2} /> 
       }} 
     />
     <Tab.Screen 
