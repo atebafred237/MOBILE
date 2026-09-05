@@ -538,7 +538,7 @@ export const DataProvider = ({ children }) => {
       ...prev,
     ]);
 
-  const updateEmployee = (id, fields) =>
+  const updateEmployee = (id, fields) => {
     setEmployees(prev =>
       prev.map(e =>
         e.id === id
@@ -546,6 +546,34 @@ export const DataProvider = ({ children }) => {
           : e
       )
     );
+
+    if (!token || !user || (user.role !== 'admin' && user.role !== 'supervisor')) return;
+
+    const currentEmployee = employees.find(employee => employee.id === id);
+    if (!currentEmployee) return;
+
+    const payload = {
+      employee_code: fields.matricule ?? currentEmployee.matricule,
+      full_name: fields.name ?? currentEmployee.name,
+      department: fields.department ?? currentEmployee.department ?? null,
+      position: fields.position ?? currentEmployee.position ?? currentEmployee.role ?? null,
+      ...(fields.status ? { status: String(fields.status).toLowerCase() } : {}),
+    };
+
+    fetch(`${API_BASE_URL}/admin/employees/${id}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    }).then(response => {
+      if (!response.ok) throw new Error(`Employee update failed with status ${response.status}`);
+    }).catch(error => {
+      console.warn('Could not persist employee update:', error);
+    });
+  };
 
   const addAttendance = record =>
     setAttendance(prev => [

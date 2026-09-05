@@ -12,6 +12,7 @@ const AdminEmployees = () => {
 
   // Modal Form State
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [newEmpId, setNewEmpId] = useState('');
   const [newEmpName, setNewEmpName] = useState('');
@@ -59,7 +60,10 @@ const AdminEmployees = () => {
       'confirm',
       'Delete',
       'danger',
-      () => deleteEmployee(employee.id)
+      () => {
+        deleteEmployee(employee.id);
+        setSelectedEmployee(null);
+      }
     );
   };
 
@@ -79,7 +83,7 @@ const AdminEmployees = () => {
       showDialog('Missing Fields', 'Please fill all required fields.', 'alert');
       return;
     }
-    
+
     if (editingEmployee) {
       updateEmployee(editingEmployee.id, {
         matricule: newEmpId,
@@ -87,6 +91,15 @@ const AdminEmployees = () => {
         department: newEmpDept,
         status: newEmpStatus ? 'Active' : 'Inactive'
       });
+      if (selectedEmployee && selectedEmployee.id === editingEmployee.id) {
+        setSelectedEmployee({
+          ...selectedEmployee,
+          matricule: newEmpId,
+          name: newEmpName,
+          department: newEmpDept,
+          status: newEmpStatus ? 'Active' : 'Inactive',
+        });
+      }
       showDialog('Success', 'Employee updated successfully.', 'alert');
     } else {
       addEmployee({
@@ -101,8 +114,39 @@ const AdminEmployees = () => {
       });
       showDialog('Success', 'Employee added successfully.', 'alert');
     }
-    
+
     setShowAddModal(false);
+  };
+
+  const handleEmployeeAction = (type, employee) => {
+    if (!employee) return;
+
+    if (type === 'contact') {
+      Alert.alert('Contact employee', `Call or message ${employee.name}.`);
+      return;
+    }
+
+    if (type === 'activate') {
+      const nextStatus = employee.status === 'Active' ? 'Inactive' : 'Active';
+      updateEmployee(employee.id, { status: nextStatus });
+      setSelectedEmployee({ ...employee, status: nextStatus });
+      return;
+    }
+
+    if (type === 'ban') {
+      const isBanned = bannedEmployees.includes(employee.id);
+      setBannedEmployees(current => isBanned ? current.filter(id => id !== employee.id) : [...current, employee.id]);
+      return;
+    }
+
+    if (type === 'edit') {
+      openEditModal(employee);
+      return;
+    }
+
+    if (type === 'delete') {
+      confirmDelete(employee);
+    }
   };
 
   const applyFilter = () => {
@@ -160,7 +204,7 @@ const AdminEmployees = () => {
           visibleEmployees.map(employee => {
             const isBanned = bannedEmployees.includes(employee.id);
             return (
-              <View key={employee.id} style={styles.card}>
+              <TouchableOpacity key={employee.id} style={styles.card} activeOpacity={0.9} onPress={() => setSelectedEmployee(employee)}>
                 <View style={styles.cardHeader}>
                   <Image source={{ uri: employee.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name || 'User')}&background=1e293b&color=fff&size=150` }} style={styles.avatar} />
                   <View style={styles.cardInfo}>
@@ -202,13 +246,84 @@ const AdminEmployees = () => {
                     <Text style={[styles.actionBtnText, {color: colors.danger}]}>Delete</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })
         )}
       </ScrollView>
 
       {/* Add Employee Modal */}
+      <Modal visible={!!selectedEmployee} animationType="slide" transparent={true} onRequestClose={() => setSelectedEmployee(null)}>
+        <View style={styles.detailBackdrop}>
+          <View style={styles.detailCard}>
+            <View style={styles.detailHeader}>
+              <View style={styles.detailAvatarWrap}>
+                <Image source={{ uri: selectedEmployee?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedEmployee?.name || 'User')}&background=1e293b&color=fff&size=150` }} style={styles.detailAvatar} />
+              </View>
+              <View style={styles.detailHeaderCopy}>
+                <Text style={styles.detailTitle}>{selectedEmployee?.name}</Text>
+                <Text style={styles.detailSubtitle}>{selectedEmployee?.role} • {selectedEmployee?.department}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setSelectedEmployee(null)}>
+                <X size={20} color={colors.slate[500]} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.tableCard}>
+              <View style={styles.tableRow}>
+                <Text style={styles.tableLabel}>Employee ID</Text>
+                <Text style={styles.tableValue}>{selectedEmployee?.matricule || 'N/A'}</Text>
+              </View>
+              <View style={styles.tableRow}>
+                <Text style={styles.tableLabel}>Department</Text>
+                <Text style={styles.tableValue}>{selectedEmployee?.department || 'Unassigned'}</Text>
+              </View>
+              <View style={styles.tableRow}>
+                <Text style={styles.tableLabel}>Role</Text>
+                <Text style={styles.tableValue}>{selectedEmployee?.role || 'Staff'}</Text>
+              </View>
+              <View style={styles.tableRow}>
+                <Text style={styles.tableLabel}>Email</Text>
+                <Text style={styles.tableValue}>{selectedEmployee?.email || 'No email'}</Text>
+              </View>
+              <View style={styles.tableRow}>
+                <Text style={styles.tableLabel}>Phone</Text>
+                <Text style={styles.tableValue}>{selectedEmployee?.phone || 'No phone'}</Text>
+              </View>
+              <View style={styles.tableRow}>
+                <Text style={styles.tableLabel}>Status</Text>
+                <Text style={styles.tableValue}>{selectedEmployee?.status || 'Inactive'}</Text>
+              </View>
+            </View>
+
+            <View style={styles.detailActions}>
+              <TouchableOpacity style={[styles.actionDetailBtn, styles.primaryActionBtn]} onPress={() => { if (selectedEmployee) handleEmployeeAction('contact', selectedEmployee); }}>
+                <MessageCircle size={16} color={colors.white} />
+                <Text style={styles.actionDetailText}>Contact</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionDetailBtn, styles.secondaryActionBtn]} onPress={() => { if (selectedEmployee) handleEmployeeAction('activate', selectedEmployee); }}>
+                <Text style={styles.actionDetailText}>{selectedEmployee?.status === 'Active' ? 'Deactivate' : 'Activate'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.detailActionsTwo}>
+              <TouchableOpacity style={[styles.actionDetailBtn, styles.warningActionBtn]} onPress={() => { if (selectedEmployee) handleEmployeeAction('ban', selectedEmployee); }}>
+                <Ban size={16} color={colors.white} />
+                <Text style={styles.actionDetailText}>{bannedEmployees.includes(selectedEmployee?.id) ? 'Unban' : 'Ban'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionDetailBtn, styles.neutralActionBtn]} onPress={() => { if (selectedEmployee) handleEmployeeAction('edit', selectedEmployee); setSelectedEmployee(null); }}>
+                <Edit3 size={16} color={colors.slate[700]} />
+                <Text style={[styles.actionDetailText, { color: colors.slate[700] }]}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionDetailBtn, styles.dangerActionBtn]} onPress={() => { if (selectedEmployee) handleEmployeeAction('delete', selectedEmployee); }}>
+                <Trash2 size={16} color={colors.white} />
+                <Text style={styles.actionDetailText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={showAddModal} animationType="none" transparent={true} onRequestClose={() => setShowAddModal(false)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={() => setShowAddModal(false)} />
@@ -591,6 +706,116 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '600',
     fontSize: 15,
+  },
+  detailBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  detailCard: {
+    backgroundColor: colors.white,
+    borderRadius: 18,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  detailAvatarWrap: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: colors.pink[100],
+  },
+  detailAvatar: {
+    width: '100%',
+    height: '100%',
+  },
+  detailHeaderCopy: {
+    flex: 1,
+  },
+  detailTitle: {
+    color: colors.slate[900],
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  detailSubtitle: {
+    color: colors.slate[500],
+    fontSize: 12,
+    marginTop: 2,
+  },
+  tableCard: {
+    borderWidth: 1,
+    borderColor: colors.slate[200],
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: colors.slate[50],
+  },
+  tableRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.slate[200],
+  },
+  tableLabel: {
+    color: colors.slate[500],
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
+  },
+  tableValue: {
+    color: colors.slate[800],
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'right',
+    flex: 1.2,
+  },
+  detailActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  detailActionsTwo: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
+  actionDetailBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    minHeight: 40,
+    borderRadius: 10,
+    paddingHorizontal: spacing.md,
+    flex: 1,
+  },
+  primaryActionBtn: {
+    backgroundColor: colors.primary[700],
+  },
+  secondaryActionBtn: {
+    backgroundColor: colors.green[600],
+  },
+  warningActionBtn: {
+    backgroundColor: colors.orange[600],
+  },
+  neutralActionBtn: {
+    backgroundColor: colors.slate[200],
+  },
+  dangerActionBtn: {
+    backgroundColor: colors.danger,
+  },
+  actionDetailText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: '700',
   },
   dialogBackdrop: {
     flex: 1,

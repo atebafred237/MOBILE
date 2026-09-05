@@ -16,6 +16,7 @@ import ForgotPasswordEmail from '../pages/ForgotPasswordEmail';
 import ForgotPassword from '../pages/ForgotPassword';
 import ResetPassword from '../pages/ResetPassword';
 import PasswordSuccess from '../pages/PasswordSuccess';
+import ChangePassword from '../pages/ChangePassword';
 import Onboarding from '../pages/Onboarding';
 import OnboardingTwo from '../pages/OnboardingTwo';
 import OnboardingThree from '../pages/OnboardingThree';
@@ -226,6 +227,8 @@ const AppNavigator = () => {
             <Stack.Screen name="ResetPassword" component={ResetPassword} />
             <Stack.Screen name="PasswordSuccess" component={PasswordSuccess} />
           </>
+        ) : user.mustChangePassword ? (
+          <Stack.Screen name="ChangePassword" component={ChangePassword} />
         ) : user.role === 'admin' ? (
           <Stack.Screen name="AdminRoot" component={AdminTabs} />
         ) : user.role === 'kiosk' ? (

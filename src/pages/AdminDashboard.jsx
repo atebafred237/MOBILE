@@ -15,6 +15,7 @@ import {
 import { colors, spacing } from '../theme';
 import {
   Users,
+  Building2,
   Clock,
   MapPin,
   AlertCircle,
@@ -557,19 +558,16 @@ const AdminDashboard = () => {
             ),
           ]);
 
-          if (
-            overviewRes.ok &&
-            methodsRes.ok
-          ) {
+          if (overviewRes.ok) {
             const overviewData =
               await overviewRes.json();
 
+            setOverview(overviewData.data);
+          }
+
+          if (methodsRes.ok) {
             const methodsData =
               await methodsRes.json();
-
-            setOverview(
-              overviewData.data
-            );
 
             const totalMethods =
               methodsData.data.reduce(
@@ -888,6 +886,13 @@ const AdminDashboard = () => {
             0
           }
           icon={Users}
+          change="Current"
+        />
+
+        <StatCard
+          title="Total Departments"
+          value={overview?.total_departments || 0}
+          icon={Building2}
           change="Current"
         />
 

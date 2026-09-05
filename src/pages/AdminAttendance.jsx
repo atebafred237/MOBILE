@@ -2158,14 +2158,16 @@ const AdminAttendance = () => {
                     {/* CHECK IN / OUT */}
 
                     <View
-                      style={
-                        styles.detailRow
-                      }>
+                      style={[
+                        styles.detailRow,
+                        styles.locationHoursRow,
+                      ]}>
 
                       <View
-                        style={
-                          styles.detailItem
-                        }>
+                        style={[
+                          styles.detailItem,
+                          styles.locationDetailItem,
+                        ]}>
 
                         <Clock
                           size={14}
@@ -2298,11 +2300,15 @@ const AdminAttendance = () => {
                         </Text>
 
                         <Text
-                          style={
-                            styles.detailValue
-                          }>
+                          style={[
+                            styles.detailValue,
+                            styles.locationValue,
+                          ]}
+                          numberOfLines={2}
+                          ellipsizeMode="tail">
                           {
-                            record.location
+                            record.location ||
+                            'Not recorded'
                           }
                         </Text>
 
@@ -2312,13 +2318,14 @@ const AdminAttendance = () => {
                       {record.totalHours && (
 
                         <View
-                          style={
-                            styles.detailItem
-                          }>
+                          style={[
+                            styles.detailItem,
+                            styles.hoursDetailItem,
+                          ]}>
 
                           <Text
                             style={
-                              styles.detailLabel
+                              styles.hoursLabel
                             }>
                             Total:
                           </Text>
@@ -2326,10 +2333,7 @@ const AdminAttendance = () => {
                           <Text
                             style={[
                               styles.detailValue,
-                              {
-                                fontWeight:
-                                  '700',
-                              },
+                              styles.hoursValue,
                             ]}>
                             {
                               record.totalHours
@@ -2883,6 +2887,12 @@ const styles =
       alignItems:
         'center',
     },
+    locationHoursRow: {
+      alignItems:
+        'stretch',
+      gap:
+        spacing.sm,
+    },
 
 
     detailItem: {
@@ -2895,6 +2905,28 @@ const styles =
       gap: 6,
 
       flex: 1,
+    },
+    locationDetailItem: {
+      minWidth:
+        0,
+      padding:
+        spacing.sm,
+      borderRadius:
+        8,
+      backgroundColor:
+        colors.white,
+    },
+    hoursDetailItem: {
+      flex:
+        0.8,
+      justifyContent:
+        'center',
+      paddingHorizontal:
+        spacing.sm,
+      borderRadius:
+        8,
+      backgroundColor:
+        colors.pink[50],
     },
 
 
@@ -2914,6 +2946,30 @@ const styles =
 
       fontWeight:
         '500',
+    },
+    locationValue: {
+      flex:
+        1,
+      minWidth:
+        0,
+      marginLeft:
+        2,
+    },
+    hoursLabel: {
+      fontSize:
+        11,
+      color:
+        colors.pink[800],
+      fontWeight:
+        '700',
+    },
+    hoursValue: {
+      color:
+        colors.pink[900],
+      fontSize:
+        14,
+      fontWeight:
+        '800',
     },
 
 

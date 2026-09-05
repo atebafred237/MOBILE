@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Animated, Easing, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Activity, ArrowLeft, Bell, Bot, CheckCircle2, ChevronRight, FileText, Languages, LifeBuoy, LogOut, Moon, RefreshCw, Search, Send, Server, ShieldCheck, ShieldHalf, Sun, Trash2, UserRound } from 'lucide-react-native';
 import { colors, spacing } from '../theme';
@@ -8,6 +9,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { API_BASE_URL } from '../config';
+import EmployeeProfile from './EmployeeProfile';
 
 const SETTINGS_OPTIONS = [
 	{ key: 'reports', title: 'Reports', description: 'Review, export, and manage attendance reports.', icon: FileText, color: colors.pink[800], background: colors.pink[50] },
@@ -37,8 +39,157 @@ const SUPPORT_TASKS = [
 	'Help me add an employee',
 ];
 
+const DEFAULT_SUPPORT_MESSAGES = [{ id: 'welcome', role: 'assistant', text: 'Hi! I can help you complete tasks in Presenza. What would you like to do?' }];
+const SUPPORT_CHAT_STORAGE_KEY = 'presenza_support_chat';
+
+const renderInlineMarkdown = text => {
+	const pattern = /(\*\*.*?\*\*)|(`.*?`)/g;
+	const parts = [];
+	let lastIndex = 0;
+	let match;
+
+	while ((match = pattern.exec(text)) !== null) {
+		if (match.index > lastIndex) {
+			parts.push({ type: 'text', value: text.slice(lastIndex, match.index) });
+		}
+
+		const token = match[0];
+		const bold = token.startsWith('**') && token.endsWith('**');
+		const code = token.startsWith('`') && token.endsWith('`');
+		parts.push({
+			type: bold ? 'bold' : code ? 'code' : 'text',
+			value: bold ? token.slice(2, -2) : code ? token.slice(1, -1) : token,
+		});
+		lastIndex = match.index + token.length;
+	}
+
+	if (lastIndex < text.length) {
+		parts.push({ type: 'text', value: text.slice(lastIndex) });
+	}
+
+	return parts.map((part, index) => {
+		if (part.type === 'bold') {
+			return <Text key={`bold-${index}`} style={styles.chatInlineBold}>{part.value}</Text>;
+		}
+		if (part.type === 'code') {
+			return <Text key={`code-${index}`} style={styles.chatInlineCode}>{part.value}</Text>;
+		}
+		return <Text key={`text-${index}`} style={styles.chatParagraph}>{part.value}</Text>;
+	});
+};
+
+const renderSupportMessage = text => {
+	const raw = String(text || '').trim();
+	if (!raw) return null;
+
+	const lines = raw.split(/\r?\n/);
+	const blocks = [];
+	let index = 0;
+
+	while (index < lines.length) {
+		const line = lines[index].trim();
+		if (!line) {
+			index += 1;
+			continue;
+		}
+
+		const isHeading = /^#{1,3}\s+/.test(line);
+		if (isHeading) {
+			blocks.push({ type: 'heading', text: line.replace(/^#{1,3}\s+/, '') });
+			index += 1;
+			continue;
+		}
+
+		const isBullet = /^[-*]\s+/.test(line);
+		if (isBullet) {
+			const bulletLines = [line];
+			let cursor = index + 1;
+			while (cursor < lines.length) {
+				const next = lines[cursor].trim();
+				if (!next || !/^[-*]\s+/.test(next)) break;
+				bulletLines.push(next);
+				cursor += 1;
+			}
+			blocks.push({ type: 'bulletList', items: bulletLines.map(item => item.replace(/^[-*]\s+/, '')) });
+			index = cursor;
+			continue;
+		}
+
+		const tableLines = [];
+		let cursor = index;
+		while (cursor < lines.length) {
+			const candidate = lines[cursor].trim();
+			if (!candidate || !candidate.includes('|')) break;
+			tableLines.push(candidate);
+			cursor += 1;
+		}
+		const separator = tableLines.length > 1 ? tableLines.findIndex(line => line.split('|').filter(Boolean).every(cell => /^:?-{3,}:?$/.test(cell.trim()))) : -1;
+		if (separator > 0) {
+			const headerCells = tableLines[0].split('|').map(cell => cell.trim()).filter(Boolean);
+			const bodyRows = tableLines.slice(separator + 1).filter(row => row.includes('|')).map(row => row.split('|').map(cell => cell.trim()).filter(Boolean));
+			blocks.push({ type: 'table', header: headerCells, rows: bodyRows });
+			index = cursor;
+			continue;
+		}
+
+		const paragraphLines = [line];
+		let paragraphCursor = index + 1;
+		while (paragraphCursor < lines.length) {
+			const nextLine = lines[paragraphCursor].trim();
+			if (!nextLine || /^#{1,3}\s+/.test(nextLine) || /^[-*]\s+/.test(nextLine) || nextLine.includes('|')) break;
+			paragraphLines.push(nextLine);
+			paragraphCursor += 1;
+		}
+		blocks.push({ type: 'paragraph', text: paragraphLines.join(' ') });
+		index = paragraphCursor;
+	}
+
+	return (
+		<View style={styles.messageContent}>
+			{blocks.map((block, blockIndex) => {
+				if (block.type === 'heading') {
+					return <Text key={`heading-${blockIndex}`} style={styles.chatHeading}>{block.text}</Text>;
+				}
+
+				if (block.type === 'bulletList') {
+					return (
+						<View key={`bullet-${blockIndex}`} style={styles.chatListBlock}>
+							{block.items.map((item, itemIndex) => (
+								<Text key={`bullet-item-${itemIndex}`} style={styles.chatBulletItem}>• {renderInlineMarkdown(item)}</Text>
+							))}
+						</View>
+					);
+				}
+
+				if (block.type === 'table') {
+					return (
+						<ScrollView key={`table-${blockIndex}`} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.aiTableScroll}>
+							<View style={styles.aiTable}>
+								<View style={[styles.aiTableRow, styles.aiTableHeaderRow]}>
+									{block.header.map((cell, cellIndex) => (
+										<Text key={`header-${cellIndex}`} style={[styles.aiTableCell, styles.aiTableHeaderCell]}>{cell}</Text>
+									))}
+								</View>
+								{block.rows.map((row, rowIndex) => (
+									<View key={`row-${rowIndex}`} style={styles.aiTableRow}>
+										{row.map((cell, cellIndex) => (
+											<Text key={`cell-${rowIndex}-${cellIndex}`} style={styles.aiTableCell}>{cell}</Text>
+										))}
+									</View>
+								))}
+							</View>
+						</ScrollView>
+					);
+				}
+
+				return <Text key={`paragraph-${blockIndex}`} style={styles.chatParagraph}>{renderInlineMarkdown(block.text)}</Text>;
+			})}
+		</View>
+	);
+};
+
 const Settings = () => {
-	const { user, logout, updateProfile } = useAuth();
+	const { user, logout } = useAuth();
 	const { language, setLanguage: saveLanguage, t } = useLanguage();
 	const { isDark } = useTheme();
 	const { theme, setTheme } = useTheme();
@@ -56,11 +207,42 @@ const Settings = () => {
 	const [notificationSearch, setNotificationSearch] = useState('');
 	const [selectedStandard, setSelectedStandard] = useState(null);
 	const [supportInput, setSupportInput] = useState('');
-	const [supportMessages, setSupportMessages] = useState([{ id: 'welcome', role: 'assistant', text: 'Hi! I can help you complete tasks in Presenza. What would you like to do?' }]);
+	const [supportMessages, setSupportMessages] = useState(DEFAULT_SUPPORT_MESSAGES);
 	const [supportLoading, setSupportLoading] = useState(false);
-	const [accountEmail, setAccountEmail] = useState(user?.email || '');
-	const [accountPhone, setAccountPhone] = useState(user?.phone || '');
-	const [accountSaved, setAccountSaved] = useState(false);
+	const supportStorageKey = `${SUPPORT_CHAT_STORAGE_KEY}_${user?.id || 'guest'}`;
+
+	useEffect(() => {
+		let isMounted = true;
+		const loadSupportMessages = async () => {
+			try {
+				const saved = await AsyncStorage.getItem(supportStorageKey);
+				if (!saved) return;
+				const parsed = JSON.parse(saved);
+				if (Array.isArray(parsed) && parsed.length > 0 && isMounted) {
+					setSupportMessages(parsed);
+				}
+			} catch (error) {
+				console.warn('Failed to load support chat history:', error);
+			}
+		};
+
+		loadSupportMessages();
+		return () => {
+			isMounted = false;
+		};
+	}, [supportStorageKey]);
+
+	useEffect(() => {
+		const persistSupportMessages = async () => {
+			try {
+				await AsyncStorage.setItem(supportStorageKey, JSON.stringify(supportMessages));
+			} catch (error) {
+				console.warn('Failed to save support chat history:', error);
+			}
+		};
+
+		persistSupportMessages();
+	}, [supportMessages, supportStorageKey]);
 	const screenAnimation = useRef(new Animated.Value(0)).current;
 	const selectedOption = SETTINGS_OPTIONS.find(option => option.key === selectedKey);
 	const notifications = user?.role === 'admin' ? adminNotifs : empNotifs;
@@ -132,7 +314,8 @@ const Settings = () => {
 
 				const previousMessages = supportMessages
 					.filter(message => message.id !== 'welcome')
-					.slice(-19)
+					.filter(message => !/already (retrieved|generated|shown|displayed)|system .*retrieved|has already .*list/i.test((message.text || '').toLowerCase()))
+					.slice(-10)
 					.map(message => ({ role: message.role, content: message.text }));
 
 				setSupportMessages(current => [...current, { id: `${Date.now()}-user`, role: 'user', text: question }]);
@@ -173,7 +356,7 @@ const Settings = () => {
 						<View style={styles.chatHeader}><View style={styles.chatBotIcon}><Bot size={22} color={colors.green[600]} /></View><View><Text style={styles.detailTitle}>Support Center</Text><Text style={styles.chatStatus}>Presenza task assistant</Text></View></View>
 						<View style={styles.chatCard}>
 							{supportMessages.map(message => (
-								<View key={message.id} style={[styles.chatBubble, message.role === 'user' ? styles.userBubble : styles.assistantBubble]}><Text style={[styles.chatBubbleText, message.role === 'user' && styles.userBubbleText]}>{message.text}</Text></View>
+													<View key={message.id} style={[styles.chatBubble, message.role === 'user' ? styles.userBubble : styles.assistantBubble]}>{message.role === 'assistant' ? renderSupportMessage(message.text) : <Text style={[styles.chatBubbleText, styles.userBubbleText]}>{message.text}</Text>}</View>
 							))}
 													{supportLoading && <Text style={styles.chatStatus}>AI is thinking...</Text>}
 						</View>
@@ -357,30 +540,7 @@ const Settings = () => {
 			);
 		}
 		if (selectedOption.key === 'account') {
-			const saveAccount = async () => {
-				await updateProfile({ email: accountEmail.trim(), phone: accountPhone.trim() });
-				setAccountSaved(true);
-			};
-			return (
-				<Animated.ScrollView style={[styles.container, screenStyle]} contentContainerStyle={styles.content}>
-					<TouchableOpacity style={styles.backButton} onPress={() => setSelectedKey(null)}><ArrowLeft size={18} color={colors.slate[700]} /><Text style={styles.backText}>Settings</Text></TouchableOpacity>
-					<View style={styles.accountCard}>
-						<View style={styles.accountAvatarRing}><UserRound size={38} color={colors.primary[600]} /></View>
-						<Text style={styles.accountName}>{user?.name || 'Account holder'}</Text>
-						<Text style={styles.accountRole}>{user?.role === 'admin' ? 'Administrator' : 'Employee'}</Text>
-						<View style={styles.accountForm}>
-							<Text style={styles.accountLabel}>Email address</Text>
-							<TextInput style={styles.accountInput} value={accountEmail} onChangeText={value => { setAccountEmail(value); setAccountSaved(false); }} autoCapitalize="none" keyboardType="email-address" />
-							<Text style={styles.accountLabel}>Phone number</Text>
-							<TextInput style={styles.accountInput} value={accountPhone} onChangeText={value => { setAccountPhone(value); setAccountSaved(false); }} keyboardType="phone-pad" />
-							<TouchableOpacity style={styles.saveAccountButton} onPress={saveAccount} accessibilityRole="button"><Text style={styles.saveAccountText}>Save changes</Text></TouchableOpacity>
-							{accountSaved && <Text style={styles.accountSuccess}>Account details saved successfully.</Text>}
-						</View>
-						<View style={styles.accountMeta}><Text style={styles.accountMetaLabel}>Employee ID</Text><Text style={styles.accountMetaValue}>{user?.matricule || 'ADMIN-0001'}</Text></View>
-						<View style={styles.accountMeta}><Text style={styles.accountMetaLabel}>Access level</Text><Text style={styles.accountMetaValue}>{user?.role === 'admin' ? 'Administrator' : 'Standard employee'}</Text></View>
-					</View>
-				</Animated.ScrollView>
-			);
+			return <EmployeeProfile onBack={() => setSelectedKey(null)} />;
 		}
 		if (selectedOption.key === 'system-health') {
 			const services = [
@@ -618,7 +778,9 @@ const styles = StyleSheet.create({
 	healthFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, marginTop: spacing.md },
 	healthFooterText: { color: colors.slate[500], fontSize: 12 },
 	accountCard: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate[200], borderRadius: 12, padding: spacing.lg, alignItems: 'center' },
-	accountAvatarRing: { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary[50], marginBottom: spacing.sm },
+	accountAvatarRing: { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: colors.primary[50], marginBottom: spacing.sm },
+	accountAvatarImage: { width: '100%', height: '100%' },
+	avatarLoader: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15,23,42,0.45)' },
 	accountName: { color: colors.slate[900], fontSize: 22, fontWeight: '700' },
 	accountRole: { color: colors.slate[500], fontSize: 14, marginTop: 3 },
 	accountForm: { width: '100%', marginTop: spacing.lg },
@@ -666,6 +828,19 @@ const styles = StyleSheet.create({
 	chatBubble: { maxWidth: '86%', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 14 },
 	assistantBubble: { alignSelf: 'flex-start', backgroundColor: colors.slate[100], borderBottomLeftRadius: 4 },
 	userBubble: { alignSelf: 'flex-end', backgroundColor: colors.pink[800], borderBottomRightRadius: 4 },
+	messageContent: { maxWidth: '100%', gap: 6 },
+	chatParagraph: { color: colors.slate[700], fontSize: 13, lineHeight: 20 },
+	chatHeading: { color: colors.slate[900], fontSize: 15, fontWeight: '700', marginTop: 2, marginBottom: 4 },
+	chatInlineBold: { color: colors.slate[900], fontWeight: '700' },
+	chatInlineCode: { color: colors.pink[800], backgroundColor: colors.pink[50], borderRadius: 5, paddingHorizontal: 4, paddingVertical: 1, fontWeight: '600' },
+	chatListBlock: { marginVertical: 2 },
+	chatBulletItem: { color: colors.slate[700], fontSize: 13, lineHeight: 20, marginLeft: 6 },
+	aiTableScroll: { maxWidth: '100%', marginTop: 6, marginBottom: 6 },
+	aiTable: { minWidth: 220, borderWidth: 1, borderColor: colors.slate[200], borderRadius: 8, overflow: 'hidden', backgroundColor: colors.white },
+	aiTableRow: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.slate[200] },
+	aiTableHeaderRow: { borderTopWidth: 0, backgroundColor: colors.slate[100] },
+	aiTableCell: { flex: 1, minWidth: 74, paddingHorizontal: 8, paddingVertical: 7, color: colors.slate[700], fontSize: 11, lineHeight: 15 },
+	aiTableHeaderCell: { color: colors.slate[900], fontWeight: '700' },
 	chatBubbleText: { color: colors.slate[700], fontSize: 13, lineHeight: 19 },
 	userBubbleText: { color: colors.white },
 	taskHeading: { color: colors.slate[700], fontSize: 13, fontWeight: '700', marginTop: spacing.lg, marginBottom: spacing.sm },

@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { 
   Camera, 
+  ArrowLeft,
   Check, 
   Edit3, 
   Mail, 
@@ -32,7 +33,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import ProfileAvatar from '../components/ProfileAvatar';
 
-const EmployeeProfile = () => {
+const EmployeeProfile = ({ onBack = null }) => {
   const { user, updateProfile, updateProfilePicture } = useAuth();
   const { t } = useLanguage();
   const { isDark } = useTheme();
@@ -157,6 +158,7 @@ const EmployeeProfile = () => {
 
   return (
     <ScrollView style={[styles.container, isDark && styles.darkContainer]} contentContainerStyle={styles.content}>
+      {onBack && <TouchableOpacity style={styles.profileBackButton} onPress={onBack}><ArrowLeft size={18} color={colors.slate[700]} /><Text style={styles.profileBackText}>Account</Text></TouchableOpacity>}
       {/* ── WhatsApp-Style Header Cover & Avatar ── */}
       <View style={styles.cover}>
         <View style={styles.avatarWrap}>
@@ -361,6 +363,8 @@ const styles = StyleSheet.create({
   darkSheet: { backgroundColor: colors.slate[800] },
   darkCancelBtn: { backgroundColor: colors.slate[700] },
   content: { paddingBottom: spacing.xl },
+  profileBackButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm },
+  profileBackText: { color: colors.slate[700], fontSize: 14, fontWeight: '700' },
   cover: { backgroundColor: colors.slate[900], alignItems: 'center', paddingTop: spacing.xl, paddingBottom: spacing.lg, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
   avatarWrap: { position: 'relative' },
   avatarTouch: { borderRadius: 72 },

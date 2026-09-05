@@ -409,6 +409,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const completePasswordChange = async () => {
+    const updatedUser = { ...user, mustChangePassword: false };
+    setUser(updatedUser);
+    await AsyncStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+  };
+
   /* ─────────────────────────────────────────────
      CONTEXT
   ───────────────────────────────────────────── */
@@ -421,6 +427,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateProfilePicture,
         updateProfile,
+        completePasswordChange,
         loading,
         hasOnboarded,
         completeOnboarding,
@@ -555,6 +562,12 @@ function mapUser(apiUser = {}, token = null) {
     position:
       apiUser.position ??
       null,
+
+    mustChangePassword: Boolean(
+      apiUser.must_change_password ??
+      apiUser.mustChangePassword ??
+      false
+    ),
 
     phone:
       apiUser.phone ??
