@@ -99,7 +99,7 @@ const KioskDashboard = () => {
   // EMPLOYEE LOOKUP
   // ---------------------------------------------------------
 
-  const handleAction = async (type) => {
+  const handleAction = async () => {
     Keyboard.dismiss();
 
     const idToSearch = matricule.trim();
@@ -169,7 +169,7 @@ const KioskDashboard = () => {
         };
 
         setPendingEmployee(mappedEmp);
-        setPendingAction(type);
+        setPendingAction(null);
         setShowConfirm(true);
 
         return;
@@ -230,7 +230,7 @@ const KioskDashboard = () => {
     }
 
     setPendingEmployee(localEmp);
-    setPendingAction(type);
+    setPendingAction(null);
     setShowConfirm(true);
   };
 
@@ -238,8 +238,12 @@ const KioskDashboard = () => {
   // CONFIRM EMPLOYEE + START CAMERA
   // ---------------------------------------------------------
 
-  const confirmIdentity = async () => {
+  const confirmIdentity = async (selectedAction = pendingAction) => {
     try {
+      if (!selectedAction) {
+        return;
+      }
+
       let cameraGranted = permission?.granted;
 
       if (!cameraGranted) {
@@ -258,7 +262,7 @@ const KioskDashboard = () => {
       }
 
       const emp = pendingEmployee;
-      const action = pendingAction;
+      const action = selectedAction;
 
       if (!emp) {
         showFeedback(
@@ -352,6 +356,11 @@ const KioskDashboard = () => {
     setShowConfirm(false);
     setPendingEmployee(null);
     setPendingAction(null);
+  };
+
+  const chooseAttendanceAction = (type) => {
+    setPendingAction(type);
+    confirmIdentity(type);
   };
 
   // ---------------------------------------------------------
@@ -564,7 +573,7 @@ const KioskDashboard = () => {
         >
           <Pressable style={styles.confirmDialogCard}>
             <Text style={styles.confirmDialogTitle}>
-              Confirm Identity
+              Choose Attendance Action
             </Text>
 
             {pendingEmployee && (
@@ -583,7 +592,7 @@ const KioskDashboard = () => {
                 <Text
                   style={styles.confirmDialogMessage}
                 >
-                  Are you{' '}
+                  Confirm that you are{' '}
                   <Text
                     style={{
                       fontWeight: '700',
@@ -593,6 +602,10 @@ const KioskDashboard = () => {
                     {pendingEmployee.name}
                   </Text>
                   ?
+                </Text>
+
+                <Text style={styles.confirmDialogPrompt}>
+                  Would you like to check in or check out?
                 </Text>
               </>
             )}
@@ -612,15 +625,22 @@ const KioskDashboard = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.confirmDialogButtonConfirm}
-                onPress={confirmIdentity}
+                style={styles.confirmDialogButtonCheckIn}
+                onPress={() => chooseAttendanceAction('check-in')}
               >
                 <Text
-                  style={
-                    styles.confirmDialogButtonConfirmText
-                  }
+                  style={styles.confirmDialogButtonConfirmText}
                 >
-                  Yes, that's me
+                  Check In
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.confirmDialogButtonCheckOut}
+                onPress={() => chooseAttendanceAction('check-out')}
+              >
+                <Text style={styles.confirmDialogButtonCheckOutText}>
+                  Check Out
                 </Text>
               </TouchableOpacity>
             </View>
@@ -929,60 +949,23 @@ const KioskDashboard = () => {
                 autoCapitalize="characters"
                 autoCorrect={false}
                 onSubmitEditing={() =>
-                  handleAction('check-in')
+                  handleAction()
                 }
               />
 
-              <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.button,
-                    styles.buttonCheckIn,
-                  ]}
-                  onPress={() =>
-                    handleAction('check-in')
-                  }
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <ActivityIndicator
-                      color={colors.white}
-                    />
-                  ) : (
-                    <Text
-                      style={styles.buttonText}
-                    >
-                      Check In
-                    </Text>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.button,
-                    styles.buttonCheckOut,
-                  ]}
-                  onPress={() =>
-                    handleAction('check-out')
-                  }
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <ActivityIndicator
-                      color={colors.slate[700]}
-                    />
-                  ) : (
-                    <Text
-                      style={[
-                        styles.buttonText,
-                        styles.buttonTextDark,
-                      ]}
-                    >
-                      Check Out
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonCheckIn]}
+                onPress={handleAction}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Text style={styles.buttonText}>
+                    Find Employee
+                  </Text>
+                )}
+              </TouchableOpacity>
             </View>
           )}
         </ScrollView>
@@ -1406,12 +1389,19 @@ const styles = StyleSheet.create({
   confirmDialogMessage: {
     fontSize: 18,
     color: colors.slate[600],
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+
+  confirmDialogPrompt: {
+    fontSize: 16,
+    color: colors.slate[500],
     marginBottom: spacing.xl,
     textAlign: 'center',
   },
 
   confirmDialogActions: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: spacing.md,
     width: '100%',
   },
@@ -1436,6 +1426,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.pink[900],
     borderRadius: 12,
     alignItems: 'center',
+  },
+
+  confirmDialogButtonCheckIn: {
+    paddingVertical: 14,
+    backgroundColor: colors.pink[900],
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+
+  confirmDialogButtonCheckOut: {
+    paddingVertical: 14,
+    backgroundColor: colors.slate[200],
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+
+  confirmDialogButtonCheckOutText: {
+    color: colors.slate[800],
+    fontSize: 16,
+    fontWeight: '700',
   },
 
   confirmDialogButtonConfirmText: {
