@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -33,6 +34,7 @@ const AdminManagement = () => {
   const [departments, setDepartments] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [departmentName, setDepartmentName] = useState('');
+  const [departmentModal, setDepartmentModal] = useState(false);
   const [employeeModal, setEmployeeModal] = useState(false);
   const [employeeCode, setEmployeeCode] = useState('');
   const [employeeName, setEmployeeName] = useState('');
@@ -94,6 +96,7 @@ const AdminManagement = () => {
     }
     setDepartments(current => [...current, name]);
     setDepartmentName('');
+    setDepartmentModal(false);
   };
 
   const openEmployeeModal = () => {
@@ -154,10 +157,7 @@ const AdminManagement = () => {
 
   const renderDepartments = () => (
     <>
-      <View style={styles.createRow}>
-        <TextInput style={styles.inlineInput} value={departmentName} onChangeText={setDepartmentName} placeholder="New department name" placeholderTextColor={colors.slate[400]} onSubmitEditing={createDepartment} />
-        <TouchableOpacity style={styles.iconButton} onPress={createDepartment} accessibilityLabel="Add department"><Plus size={19} color={colors.white} /></TouchableOpacity>
-      </View>
+      <TouchableOpacity style={styles.primaryButton} onPress={() => { setDepartmentName(''); setDepartmentModal(true); }}><Plus size={17} color={colors.white} /><Text style={styles.primaryButtonText}>Add department</Text></TouchableOpacity>
       {departments.length === 0 ? <Text style={styles.emptyText}>No departments yet. Add one above to organize employees.</Text> : departments.map(department => {
         const count = employees.filter(employee => employee.department === department).length;
         return <View key={department} style={styles.listCard}><View style={styles.listIcon}><Building2 size={19} color={colors.pink[800]} /></View><View style={styles.listCopy}><Text style={styles.listTitle}>{department}</Text><Text style={styles.listMeta}>{count} employee{count === 1 ? '' : 's'}</Text></View><Check size={18} color={colors.green[600]} /></View>;
@@ -172,7 +172,7 @@ const AdminManagement = () => {
         {departments.map(department => <TouchableOpacity key={department} style={[styles.filterChip, selectedDepartment === department && styles.filterChipActive]} onPress={() => setSelectedDepartment(department)}><Text style={[styles.filterText, selectedDepartment === department && styles.filterTextActive]}>{department}</Text></TouchableOpacity>)}
       </ScrollView>
       <TouchableOpacity style={styles.primaryButton} onPress={openEmployeeModal} disabled={!departments.length}><Plus size={17} color={colors.white} /><Text style={styles.primaryButtonText}>Add employee to department</Text></TouchableOpacity>
-      {visibleEmployees.map(employee => <View key={employee.id} style={styles.listCard}><View style={styles.avatar}><Text style={styles.avatarText}>{employee.name?.slice(0, 1).toUpperCase()}</Text></View><View style={styles.listCopy}><Text style={styles.listTitle}>{employee.name}</Text><Text style={styles.listMeta}>{employee.matricule}  |  {employee.department || 'Unassigned'}</Text></View></View>)}
+      {visibleEmployees.map(employee => <View key={employee.id} style={styles.listCard}><Image source={{ uri: employee.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name || 'User')}&background=1e293b&color=fff&size=150` }} style={styles.avatar} /><View style={styles.listCopy}><Text style={styles.listTitle}>{employee.name}</Text><Text style={styles.listMeta}>{employee.matricule}  |  {employee.department || 'Unassigned'}</Text></View></View>)}
       {!visibleEmployees.length && <Text style={styles.emptyText}>{departments.length ? 'No employees in this department.' : 'Create a department before adding employees.'}</Text>}
     </>
   );
@@ -195,6 +195,10 @@ const AdminManagement = () => {
 
       <Modal visible={employeeModal} transparent animationType="fade" onRequestClose={() => setEmployeeModal(false)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><View style={styles.modalCard}><View style={styles.modalHeader}><Text style={styles.modalTitle}>Add Employee</Text><TouchableOpacity onPress={() => setEmployeeModal(false)}><X size={21} color={colors.slate[500]} /></TouchableOpacity></View><TextInput style={styles.input} value={employeeCode} onChangeText={setEmployeeCode} placeholder="Employee ID" placeholderTextColor={colors.slate[400]} /><TextInput style={styles.input} value={employeeName} onChangeText={setEmployeeName} placeholder="Full name" placeholderTextColor={colors.slate[400]} /><Text style={styles.label}>Department</Text><ScrollView horizontal showsHorizontalScrollIndicator={false}>{departments.map(department => <TouchableOpacity key={department} style={[styles.filterChip, employeeDepartment === department && styles.filterChipActive]} onPress={() => setEmployeeDepartment(department)}><Text style={[styles.filterText, employeeDepartment === department && styles.filterTextActive]}>{department}</Text></TouchableOpacity>)}</ScrollView><TouchableOpacity style={styles.primaryButton} onPress={saveEmployee}><Text style={styles.primaryButtonText}>Save employee</Text></TouchableOpacity></View></KeyboardAvoidingView>
+      </Modal>
+
+      <Modal visible={departmentModal} transparent animationType="fade" onRequestClose={() => setDepartmentModal(false)}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><View style={styles.modalCard}><View style={styles.modalHeader}><Text style={styles.modalTitle}>Add Department</Text><TouchableOpacity onPress={() => setDepartmentModal(false)}><X size={21} color={colors.slate[500]} /></TouchableOpacity></View><TextInput style={styles.input} value={departmentName} onChangeText={setDepartmentName} placeholder="Department name" placeholderTextColor={colors.slate[400]} onSubmitEditing={createDepartment} autoFocus /><TouchableOpacity style={styles.primaryButton} onPress={createDepartment}><Text style={styles.primaryButtonText}>Save department</Text></TouchableOpacity></View></KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={kioskModal} transparent animationType="fade" onRequestClose={() => setKioskModal(false)}>
@@ -225,11 +229,11 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: colors.pink[50], borderColor: colors.pink[800] },
   filterText: { color: colors.slate[600], fontSize: 12, fontWeight: '600' },
   filterTextActive: { color: colors.pink[800] },
-  listCard: { height: 72, flexDirection: 'row', alignItems: 'center', padding: spacing.md, borderWidth: 1, borderColor: colors.slate[200], borderRadius: 11, backgroundColor: colors.white },
+  listCard: { width: '100%', height: 72, flexShrink: 0, flexDirection: 'row', alignItems: 'center', padding: spacing.md, borderWidth: 1, borderColor: colors.slate[200], borderRadius: 11, backgroundColor: colors.white },
   listIcon: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.pink[50], marginRight: spacing.sm },
   avatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.slate[800], marginRight: spacing.sm },
   avatarText: { color: colors.white, fontWeight: '800' },
-  listCopy: { flex: 1 },
+  listCopy: { flex: 1, minWidth: 0 },
   listTitle: { color: colors.slate[800], fontSize: 14, fontWeight: '700' },
   listMeta: { color: colors.slate[500], fontSize: 12, marginTop: 4 },
   emptyText: { color: colors.slate[500], fontSize: 13, textAlign: 'center', paddingVertical: spacing.xl },

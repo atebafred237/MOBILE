@@ -1,13 +1,13 @@
 import React, { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ActivityIndicator, View, Image } from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View, Image } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
-import { Home, Users, Calendar, Settings as SettingsIcon, Building2 } from 'lucide-react-native';
+import { Bot, Home, Users, Calendar, Settings as SettingsIcon, Building2 } from 'lucide-react-native';
 import AppTopBar from '../components/AppTopBar';
 
 // Placeholder Screens
@@ -36,10 +36,25 @@ import KioskDashboard from '../pages/KioskDashboard';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+const FloatingAiButton = ({ settingsRoute }) => {
+  const navigation = useNavigation();
+
+  return (
+    <TouchableOpacity
+      style={styles.floatingAiButton}
+      onPress={() => navigation.navigate(settingsRoute, { section: 'support', resetRequest: Date.now() })}
+      accessibilityLabel="Open AI assistance"
+    >
+      <Bot size={23} color="#ffffff" />
+    </TouchableOpacity>
+  );
+};
+
 const withAdminTopBar = Screen => props => (
   <View style={{ flex: 1 }}>
     <AppTopBar settingsRoute="AdminSettings" />
     <Screen {...props} />
+    <FloatingAiButton settingsRoute="AdminSettings" />
   </View>
 );
 
@@ -47,6 +62,7 @@ const withEmployeeTopBar = Screen => props => (
   <View style={{ flex: 1 }}>
     <AppTopBar settingsRoute="EmployeeSettings" />
     <Screen {...props} />
+    <FloatingAiButton settingsRoute="EmployeeSettings" />
   </View>
 );
 
@@ -231,5 +247,25 @@ const AppNavigator = () => {
     </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  floatingAiButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 82,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#9d174d',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.22,
+    shadowRadius: 7,
+    elevation: 7,
+    zIndex: 50,
+  },
+});
 
 export default AppNavigator;

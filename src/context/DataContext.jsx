@@ -211,6 +211,7 @@ export const DataProvider = ({ children }) => {
               Array.isArray(raw)
                 ? raw.map(n => ({
                     id: n.id,
+                    type: n.type ?? n.data?.type ?? 'Notification',
                     title:
                       n.title ??
                       n.type ??
@@ -220,7 +221,8 @@ export const DataProvider = ({ children }) => {
                       n.data?.message ??
                       '',
                     read: !!n.read_at,
-                    time: n.created_at,
+                    date: n.created_at ?? n.date,
+                    time: n.created_at ?? n.date,
                   }))
                 : []
             );
@@ -283,6 +285,7 @@ export const DataProvider = ({ children }) => {
               Array.isArray(raw)
                 ? raw.map(n => ({
                     id: n.id,
+                    type: n.type ?? n.data?.type ?? 'Notification',
                     title:
                       n.title ??
                       n.type ??
@@ -292,7 +295,8 @@ export const DataProvider = ({ children }) => {
                       n.data?.message ??
                       '',
                     read: !!n.read_at,
-                    time: n.created_at,
+                    date: n.created_at ?? n.date,
+                    time: n.created_at ?? n.date,
                   }))
                 : []
             );
@@ -549,7 +553,7 @@ export const DataProvider = ({ children }) => {
       ...prev,
     ]);
 
-  const markAdminNotifRead = id => {
+  const markAdminNotifRead = async id => {
     setAdminNotifs(prev =>
       id === 'all'
         ? prev.map(n => ({
@@ -562,9 +566,27 @@ export const DataProvider = ({ children }) => {
               : n
           )
     );
+
+    if (!token) return;
+
+    try {
+      const endpoint = id === 'all'
+        ? `${API_BASE_URL}/admin/notifications/read-all`
+        : `${API_BASE_URL}/admin/notifications/${id}/read`;
+
+      await fetch(endpoint, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      });
+    } catch (error) {
+      console.warn('Could not persist admin notification state:', error);
+    }
   };
 
-  const markEmpNotifRead = id => {
+  const markEmpNotifRead = async id => {
     setEmpNotifs(prev =>
       id === 'all'
         ? prev.map(n => ({
@@ -577,6 +599,24 @@ export const DataProvider = ({ children }) => {
               : n
           )
     );
+
+    if (!token) return;
+
+    try {
+      const endpoint = id === 'all'
+        ? `${API_BASE_URL}/employee/notifications/read-all`
+        : `${API_BASE_URL}/employee/notifications/${id}/read`;
+
+      await fetch(endpoint, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      });
+    } catch (error) {
+      console.warn('Could not persist employee notification state:', error);
+    }
   };
 
   const deleteReport = id => {
