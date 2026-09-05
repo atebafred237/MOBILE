@@ -7,7 +7,7 @@ import { ActivityIndicator, View, Image } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
-import { Home, Users, Calendar, Settings as SettingsIcon, Bell } from 'lucide-react-native';
+import { Home, Users, Calendar, Settings as SettingsIcon, Building2 } from 'lucide-react-native';
 import AppTopBar from '../components/AppTopBar';
 
 // Placeholder Screens
@@ -26,6 +26,7 @@ import CompanySetup from '../pages/CompanySetup';
 import AdminDashboard from '../pages/AdminDashboard';
 import AdminEmployees from '../pages/AdminEmployees';
 import AdminAttendance from '../pages/AdminAttendance';
+import AdminManagement from '../pages/AdminManagement';
 import Settings from '../pages/Settings';
 import EmployeeDashboard from '../pages/EmployeeDashboard';
 import EmployeeAttendance from '../pages/EmployeeAttendance';
@@ -52,6 +53,7 @@ const withEmployeeTopBar = Screen => props => (
 const AdminDashboardWithTopBar = withAdminTopBar(AdminDashboard);
 const AdminEmployeesWithTopBar = withAdminTopBar(AdminEmployees);
 const AdminAttendanceWithTopBar = withAdminTopBar(AdminAttendance);
+const AdminManagementWithTopBar = withAdminTopBar(AdminManagement);
 const AdminSettingsWithTopBar = withAdminTopBar(Settings);
 const EmployeeDashboardWithTopBar = withEmployeeTopBar(EmployeeDashboard);
 const EmployeeAttendanceWithTopBar = withEmployeeTopBar(EmployeeAttendance);
@@ -100,6 +102,14 @@ const AdminTabsContent = () => {
         title: t('attendance'),
         tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} /> 
       }} 
+    />
+    <Tab.Screen
+      name="AdminManagement"
+      component={AdminManagementWithTopBar}
+      options={{
+        title: 'Manage',
+        tabBarIcon: ({ color, size }) => <Building2 color={color} size={size} strokeWidth={2} />
+      }}
     />
     <Tab.Screen 
       name="AdminSettings" 

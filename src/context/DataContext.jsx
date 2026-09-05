@@ -153,6 +153,9 @@ export const DataProvider = ({ children }) => {
                   a.date ??
                   a.check_in_at?.split('T')[0],
 
+                timeIn: a.check_in_at,
+                timeOut: a.check_out_at,
+
                 timestamp: a.check_in_at
                   ? new Date(
                       a.check_in_at
@@ -422,6 +425,9 @@ export const DataProvider = ({ children }) => {
               date:
                 a.attendance_date ??
                 a.date,
+
+              timeIn: a.check_in_at,
+              timeOut: a.check_out_at,
 
               timestamp: a.check_in_at
                 ? new Date(

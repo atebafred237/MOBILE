@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Easing, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Animated, Easing, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Activity, ArrowLeft, Bell, Bot, CheckCircle2, ChevronRight, FileText, Languages, LifeBuoy, LogOut, Moon, RefreshCw, Search, Send, Server, ShieldCheck, ShieldHalf, Sun, Trash2, UserRound } from 'lucide-react-native';
 import { colors, spacing } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +7,7 @@ import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { API_BASE_URL } from '../config';
 
 const SETTINGS_OPTIONS = [
 	{ key: 'reports', title: 'Reports', description: 'Review, export, and manage attendance reports.', icon: FileText, color: colors.pink[800], background: colors.pink[50] },
@@ -36,15 +37,6 @@ const SUPPORT_TASKS = [
 	'Help me add an employee',
 ];
 
-const getSupportReply = question => {
-	const text = question.toLowerCase();
-	if (text.includes('attendance')) return 'I can help you review attendance records. Open the Attendance tab to filter by status, weekday, employee, date, or location.';
-	if (text.includes('notification')) return 'I can help you review notifications. Open Settings, choose Notifications, and tap any item to read its complete message.';
-	if (text.includes('report')) return 'Your downloaded reports are in Settings > Reports. Select a report to view its content or use the delete controls to manage it.';
-	if (text.includes('employee')) return 'To add an employee, open the Employees tab and select Add New Employee. You can then manage roles, contact details, and profiles.';
-	return 'I can help with attendance records, notifications, downloaded reports, or employee management. Choose a task above or ask me about one of these areas.';
-};
-
 const Settings = () => {
 	const { user, logout, updateProfile } = useAuth();
 	const { language, setLanguage: saveLanguage, t } = useLanguage();
@@ -65,6 +57,7 @@ const Settings = () => {
 	const [selectedStandard, setSelectedStandard] = useState(null);
 	const [supportInput, setSupportInput] = useState('');
 	const [supportMessages, setSupportMessages] = useState([{ id: 'welcome', role: 'assistant', text: 'Hi! I can help you complete tasks in Presenza. What would you like to do?' }]);
+	const [supportLoading, setSupportLoading] = useState(false);
 	const [accountEmail, setAccountEmail] = useState(user?.email || '');
 	const [accountPhone, setAccountPhone] = useState(user?.phone || '');
 	const [accountSaved, setAccountSaved] = useState(false);
@@ -133,27 +126,63 @@ const Settings = () => {
 
 	if (selectedOption) {
 		if (selectedOption.key === 'support') {
-			const submitSupportTask = task => {
+			const submitSupportTask = async task => {
 				const question = task.trim();
-				if (!question) return;
-				setSupportMessages(current => [...current, { id: `${Date.now()}-user`, role: 'user', text: question }, { id: `${Date.now()}-assistant`, role: 'assistant', text: getSupportReply(question) }]);
+				if (!question || supportLoading || !user?.token) return;
+
+				const previousMessages = supportMessages
+					.filter(message => message.id !== 'welcome')
+					.map(message => ({ role: message.role, content: message.text }));
+
+				setSupportMessages(current => [...current, { id: `${Date.now()}-user`, role: 'user', text: question }]);
 				setSupportInput('');
+				setSupportLoading(true);
+
+				try {
+					const response = await fetch(`${API_BASE_URL}/admin/ai/support`, {
+						method: 'POST',
+						headers: {
+							Authorization: `Bearer ${user.token}`,
+							Accept: 'application/json',
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({
+							prompt: question,
+							messages: [...previousMessages, { role: 'user', content: question }],
+						}),
+					});
+					const payload = await response.json();
+
+					if (!response.ok) {
+						throw new Error(payload.message || 'The AI support service is unavailable.');
+					}
+
+					const reply = payload.data?.message || 'The AI service returned an empty response.';
+					setSupportMessages(current => [...current, { id: `${Date.now()}-assistant`, role: 'assistant', text: reply }]);
+				} catch (error) {
+					setSupportMessages(current => [...current, { id: `${Date.now()}-assistant-error`, role: 'assistant', text: error.message || 'Unable to reach the AI support service.' }]);
+				} finally {
+					setSupportLoading(false);
+				}
 			};
 			return (
-				<View style={styles.supportScreen}>
-					<Animated.ScrollView style={[styles.container, screenStyle]} contentContainerStyle={styles.supportContent}>
+					<KeyboardAvoidingView style={styles.supportScreen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+						<Animated.ScrollView style={[styles.container, screenStyle]} contentContainerStyle={styles.supportContent} keyboardShouldPersistTaps="handled">
 						<TouchableOpacity style={styles.backButton} onPress={() => setSelectedKey(null)}><ArrowLeft size={18} color={colors.slate[700]} /><Text style={styles.backText}>Settings</Text></TouchableOpacity>
 						<View style={styles.chatHeader}><View style={styles.chatBotIcon}><Bot size={22} color={colors.green[600]} /></View><View><Text style={styles.detailTitle}>Support Center</Text><Text style={styles.chatStatus}>Presenza task assistant</Text></View></View>
 						<View style={styles.chatCard}>
 							{supportMessages.map(message => (
 								<View key={message.id} style={[styles.chatBubble, message.role === 'user' ? styles.userBubble : styles.assistantBubble]}><Text style={[styles.chatBubbleText, message.role === 'user' && styles.userBubbleText]}>{message.text}</Text></View>
 							))}
+													{supportLoading && <Text style={styles.chatStatus}>AI is thinking...</Text>}
 						</View>
-						<Text style={styles.taskHeading}>Tasks you can ask me to perform</Text>
-						<View style={styles.taskList}>{SUPPORT_TASKS.map(task => <TouchableOpacity key={task} style={styles.taskChip} onPress={() => submitSupportTask(task)}><Text style={styles.taskChipText}>{task}</Text></TouchableOpacity>)}</View>
+						{!supportMessages.some(message => message.role === 'user') && <>
+							<Text style={styles.taskHeading}>Tasks you can ask me to perform</Text>
+							<View style={styles.taskList}>{SUPPORT_TASKS.map(task => <TouchableOpacity key={task} style={styles.taskChip} onPress={() => submitSupportTask(task)}><Text style={styles.taskChipText}>{task}</Text></TouchableOpacity>)}</View>
+						</>}
 					</Animated.ScrollView>
-					<View style={styles.chatComposer}><TextInput style={styles.chatInput} value={supportInput} onChangeText={setSupportInput} placeholder="Ask about an app task..." placeholderTextColor={colors.slate[400]} onSubmitEditing={() => submitSupportTask(supportInput)} returnKeyType="send" /><TouchableOpacity style={styles.sendButton} onPress={() => submitSupportTask(supportInput)} accessibilityLabel="Send support question"><Send size={18} color={colors.white} /></TouchableOpacity></View>
-				</View>
+					<View style={styles.chatComposer}><TextInput style={styles.chatInput} value={supportInput} onChangeText={setSupportInput} placeholder="Ask about an app task..." placeholderTextColor={colors.slate[400]} onSubmitEditing={() => submitSupportTask(supportInput)} returnKeyType="send" editable={!supportLoading} /><TouchableOpacity style={styles.sendButton} onPress={() => submitSupportTask(supportInput)} disabled={supportLoading} accessibilityLabel="Send support question"><Send size={18} color={colors.white} /></TouchableOpacity></View>
+					</KeyboardAvoidingView>
 			);
 		}
 		if (selectedOption.key === 'reports') {

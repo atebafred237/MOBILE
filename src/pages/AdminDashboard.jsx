@@ -543,14 +543,14 @@ const AdminDashboard = () => {
             methodsRes,
           ] = await Promise.all([
             fetch(
-              `${API_BASE_URL}/api/v1/admin/dashboard/overview`,
+              `${API_BASE_URL}/admin/dashboard/overview`,
               {
                 headers,
               }
             ),
 
             fetch(
-              `${API_BASE_URL}/api/v1/admin/dashboard/entry-methods`,
+              `${API_BASE_URL}/admin/dashboard/entry-methods`,
               {
                 headers,
               }

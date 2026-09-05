@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   Image,
   Animated,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   Keyboard,
