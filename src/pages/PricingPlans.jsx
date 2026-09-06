@@ -7,6 +7,7 @@ import {
   Building2,
   CalendarCheck,
   Check,
+  CircleX,
   Clock3,
   FileBarChart,
   Fingerprint,
@@ -91,6 +92,15 @@ const featureGroups = [
 
 const featureIcons = [QrCode, ScanFace, Fingerprint, Clock3, FileBarChart, Users, KeyRound, Globe2, Laptop, Smartphone, Network, MessageSquareMore, LockKeyhole, BadgeCheck, ListChecks, WalletCards];
 
+const deviceRequirements = [
+  'Android smartphone or tablet',
+  'Working front camera for face recognition',
+  'Ability to install and run the PRESENZA application',
+  'Stable Wi-Fi or internet connection',
+  'Sufficient battery power or continuous power at the entrance',
+  'Suitable location at the organisation entrance or reception',
+];
+
 const PricingPlans = ({ navigation }) => {
   let featureIndex = 0;
 
@@ -117,7 +127,7 @@ const PricingPlans = ({ navigation }) => {
               <Text style={styles.badgeText}>ALL-IN-ONE PLAN</Text>
             </View>
             <Text style={styles.planName}>{plan.name}</Text>
-            <Text style={styles.description}>The complete PRESENZA solution for modern attendance management.</Text>
+            <Text style={styles.description}>The complete PRESENZA software platform for modern attendance management. The attendance device is provided by your organisation.</Text>
             <View style={styles.priceRow}>
               <Text style={styles.price}>{plan.price}</Text>
               <Text style={styles.billingPeriod}>{plan.billingPeriod}</Text>
@@ -165,6 +175,40 @@ const PricingPlans = ({ navigation }) => {
             })}
           </View>
 
+          <View style={styles.deviceSection}>
+            <View style={styles.deviceHeader}>
+              <View style={styles.deviceIcon}><Smartphone size={20} color={colors.white} /></View>
+              <View style={styles.deviceHeaderCopy}>
+                <Text style={styles.deviceEyebrow}>DEVICE REQUIREMENTS</Text>
+                <Text style={styles.deviceTitle}>Attendance Device</Text>
+              </View>
+            </View>
+            <Text style={styles.deviceLead}>Use your own device</Text>
+            <Text style={styles.deviceDescription}>Turn an existing Android smartphone or tablet into your PRESENZA attendance kiosk. No dedicated hardware purchase is required.</Text>
+
+            <View style={styles.pricingBreakdown}>
+              <View style={styles.breakdownRow}><Check size={17} color={colors.green[600]} /><Text style={styles.breakdownLabel}>Software</Text><Text style={styles.includedText}>Included</Text></View>
+              <View style={styles.breakdownRow}><Check size={17} color={colors.green[600]} /><Text style={styles.breakdownLabel}>Attendance management</Text><Text style={styles.includedText}>Included</Text></View>
+              <View style={styles.breakdownRow}><Check size={17} color={colors.green[600]} /><Text style={styles.breakdownLabel}>QR scanning</Text><Text style={styles.includedText}>Included</Text></View>
+              <View style={styles.breakdownRow}><Check size={17} color={colors.green[600]} /><Text style={styles.breakdownLabel}>Face recognition</Text><Text style={styles.includedText}>Included</Text></View>
+              <View style={styles.breakdownRow}><Check size={17} color={colors.green[600]} /><Text style={styles.breakdownLabel}>Kiosk software</Text><Text style={styles.includedText}>Included</Text></View>
+              <View style={styles.breakdownRow}><CircleX size={17} color={colors.danger} /><Text style={styles.breakdownLabel}>Phone/tablet</Text><Text style={styles.excludedText}>Not included</Text></View>
+              <View style={styles.breakdownRow}><CircleX size={17} color={colors.danger} /><Text style={styles.breakdownLabel}>Hardware</Text><Text style={styles.excludedText}>Customer-provided</Text></View>
+            </View>
+
+            <Text style={styles.requirementsTitle}>Your device should have</Text>
+            <View style={styles.requirementsList}>
+              {deviceRequirements.map(requirement => (
+                <View key={requirement} style={styles.requirementRow}>
+                  <Check size={15} color={colors.pink[800]} />
+                  <Text style={styles.requirementText}>{requirement}</Text>
+                </View>
+              ))}
+            </View>
+
+            <Text style={styles.futureHardwareNote}>Dedicated PRESENZA kiosk hardware will be available as an optional service in the future.</Text>
+          </View>
+
           <View style={styles.noActionNotice}>
             <Text style={styles.noActionText}>Viewing only. No subscription or payment action is available yet.</Text>
           </View>
@@ -210,6 +254,24 @@ const styles = StyleSheet.create({
   featureText: { flex: 1, color: colors.slate[700], fontSize: 13, lineHeight: 18 },
   noActionNotice: { margin: spacing.lg, marginTop: spacing.sm, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.slate[200] },
   noActionText: { color: colors.slate[500], fontSize: 12, lineHeight: 18, textAlign: 'center' },
+  deviceSection: { margin: spacing.lg, marginTop: spacing.sm, padding: spacing.md, borderRadius: 14, backgroundColor: colors.slate[50], borderWidth: 1, borderColor: colors.slate[200] },
+  deviceHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  deviceIcon: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.pink[800] },
+  deviceHeaderCopy: { flex: 1 },
+  deviceEyebrow: { color: colors.pink[800], fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+  deviceTitle: { color: colors.slate[900], fontSize: 19, fontWeight: '800', marginTop: 2 },
+  deviceLead: { color: colors.slate[900], fontSize: 16, fontWeight: '800', marginTop: spacing.md },
+  deviceDescription: { color: colors.slate[600], fontSize: 13, lineHeight: 20, marginTop: spacing.xs },
+  pricingBreakdown: { gap: spacing.sm, marginTop: spacing.md, padding: spacing.md, borderRadius: 10, backgroundColor: colors.white },
+  breakdownRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  breakdownLabel: { flex: 1, color: colors.slate[700], fontSize: 13 },
+  includedText: { color: colors.green[700], fontSize: 12, fontWeight: '800' },
+  excludedText: { color: colors.danger, fontSize: 12, fontWeight: '800' },
+  requirementsTitle: { color: colors.slate[800], fontSize: 14, fontWeight: '800', marginTop: spacing.lg, marginBottom: spacing.sm },
+  requirementsList: { gap: spacing.sm },
+  requirementRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  requirementText: { flex: 1, color: colors.slate[600], fontSize: 13, lineHeight: 18 },
+  futureHardwareNote: { color: colors.slate[500], fontSize: 12, lineHeight: 18, fontStyle: 'italic', marginTop: spacing.lg, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.slate[200] },
 });
 
 export default PricingPlans;

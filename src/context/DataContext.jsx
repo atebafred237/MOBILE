@@ -211,7 +211,7 @@ export const DataProvider = ({ children }) => {
               Array.isArray(raw)
                 ? raw.map(n => ({
                     id: n.id,
-                    type: n.type ?? n.data?.type ?? 'Notification',
+                    type: (n.type ?? n.data?.type) === 'trial' ? 'Free trial' : (n.type ?? n.data?.type ?? 'Notification'),
                     title:
                       n.title ??
                       n.type ??
@@ -285,7 +285,7 @@ export const DataProvider = ({ children }) => {
               Array.isArray(raw)
                 ? raw.map(n => ({
                     id: n.id,
-                    type: n.type ?? n.data?.type ?? 'Notification',
+                    type: (n.type ?? n.data?.type) === 'trial' ? 'Free trial' : (n.type ?? n.data?.type ?? 'Notification'),
                     title:
                       n.title ??
                       n.type ??
