@@ -12,6 +12,8 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing } from '../theme';
 import {
   Users,
@@ -484,8 +486,10 @@ const AdminDashboard = () => {
     useData();
 
   const { user } = useAuth();
+  const navigation = useNavigation();
 
   const { t } = useLanguage();
+  const [showSetupNotification, setShowSetupNotification] = useState(false);
 
   /*
    * Temporary diagnostic logging.
@@ -523,6 +527,35 @@ const AdminDashboard = () => {
 
   const [loading, setLoading] =
     useState(true);
+
+  const dismissSetupNotification = async () => {
+    setShowSetupNotification(false);
+    await AsyncStorage.setItem('presenza_admin_onboarding_notification_dismissed', 'true');
+  };
+
+  const openOrganizationSetup = () => {
+    const parentNavigator = navigation?.getParent ? navigation.getParent() : null;
+    if (parentNavigator) {
+      parentNavigator.navigate('OrganisationSetupScreen');
+      return;
+    }
+
+    navigation.navigate('OrganisationSetupScreen');
+  };
+
+  useEffect(() => {
+    const checkSetupNotification = async () => {
+      try {
+        const dismissed = await AsyncStorage.getItem('presenza_admin_onboarding_notification_dismissed');
+        setShowSetupNotification(!dismissed);
+      } catch (error) {
+        console.warn('Could not read onboarding notification state:', error);
+        setShowSetupNotification(true);
+      }
+    };
+
+    checkSetupNotification();
+  }, []);
 
   /*
   |--------------------------------------------------------------------------
@@ -779,9 +812,32 @@ const AdminDashboard = () => {
   */
 
   return (
-    <ScrollView
-      style={styles.container}
-    >
+    <View style={styles.containerWrapper}>
+      {showSetupNotification && (
+        <View style={styles.setupNotificationCard}>
+          <View style={styles.setupNotificationHeader}>
+            <Text style={styles.setupNotificationTitle}>Welcome to PRESENZA! 👋</Text>
+            <TouchableOpacity onPress={dismissSetupNotification} accessibilityLabel="Dismiss welcome notification">
+              <Text style={styles.setupNotificationClose}>Close</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.setupNotificationMessage}>Your organisation is ready. Complete these steps to start managing attendance.</Text>
+          <View style={styles.setupNotificationList}>
+            <Text style={styles.setupNotificationItem}>1. Create departments</Text>
+            <Text style={styles.setupNotificationItem}>2. Add employee accounts</Text>
+            <Text style={styles.setupNotificationItem}>3. Register attendance devices/kiosks</Text>
+            <Text style={styles.setupNotificationItem}>4. Configure attendance</Text>
+            <Text style={styles.setupNotificationItem}>5. Start using PRESENZA</Text>
+          </View>
+          <TouchableOpacity style={styles.setupNotificationButton} onPress={openOrganizationSetup}>
+            <Text style={styles.setupNotificationButtonText}>Complete setup</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <ScrollView
+        style={styles.container}
+      >
       <View
         style={styles.header}
       >
@@ -1840,7 +1896,8 @@ const AdminDashboard = () => {
           </View>
         </View>
       </View>
-    </ScrollView>
+        </ScrollView>
+    </View>
   );
 };
 

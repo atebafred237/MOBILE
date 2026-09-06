@@ -393,7 +393,7 @@ const KioskDashboard = () => {
 
       const photo =
         await cameraRef.current.takePictureAsync({
-          quality: 0.7,
+          quality: 1.0,
           base64: true,
           skipProcessing: false,
         });
@@ -405,6 +405,8 @@ const KioskDashboard = () => {
       }
 
       base64Face = photo.base64;
+
+      console.log('?? Face image Base64 length:', base64Face.length);
 
       console.log(
         '✅ Camera image captured successfully'
@@ -519,6 +521,32 @@ const KioskDashboard = () => {
   // FEEDBACK
   // ---------------------------------------------------------
 
+  const getFriendlyKioskError = (message, errorCode = null) => {
+    const normalized = String(message || '').toLowerCase();
+
+    if (errorCode === 'ACCOUNT_INACTIVE' || normalized.includes('inactive') || normalized.includes('suspended')) {
+      return 'This employee account is inactive. Please contact your administrator.';
+    }
+
+    if (errorCode === 'EMPLOYEE_NOT_FOUND' || normalized.includes('employee not found') || normalized.includes('no employee')) {
+      return 'We could not find that employee. Please check the Employee ID and try again.';
+    }
+
+    if (normalized.includes('biometric') || normalized.includes('face') || normalized.includes('mismatch')) {
+      return 'We could not verify your face. Make sure your face is clearly visible and try again.';
+    }
+
+    if (normalized.includes('network') || normalized.includes('connect') || normalized.includes('timeout')) {
+      return 'The attendance service is unavailable right now. Check the kiosk connection and try again.';
+    }
+
+    if (normalized.includes('camera') || normalized.includes('capture')) {
+      return 'We could not access the camera. Check camera permission and try again.';
+    }
+
+    return message || 'Something went wrong. Please try again.';
+  };
+
   const showFeedback = (
     type,
     message,
@@ -528,7 +556,7 @@ const KioskDashboard = () => {
   ) => {
     setFeedback({
       type,
-      message,
+      message: type === 'error' ? getFriendlyKioskError(message, errorCode) : message,
       employee,
       status,
       errorCode,
@@ -541,13 +569,6 @@ const KioskDashboard = () => {
     setActionType(null);
     setSessionId(null);
 
-    const timeoutDuration =
-      type === 'error' ? 6000 : 4000;
-
-    setTimeout(() => {
-      setFeedback(null);
-      setStep('input');
-    }, timeoutDuration);
   };
 
   // ---------------------------------------------------------
@@ -1102,6 +1123,8 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     height: 64,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1455,3 +1478,4 @@ const styles = StyleSheet.create({
 });
 
 export default KioskDashboard;
+

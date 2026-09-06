@@ -14,7 +14,7 @@ const AccessOptions = ({ navigation }) => (
       <Text style={styles.title}>Get started with Presenza</Text>
       <Text style={styles.subtitle}>Choose how you'd like to use Presenza for your company.</Text>
       <View style={styles.options}>
-        <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('CompanySetup', { subscriptionStatus: 'trial' })} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('OrganisationTypeScreen')} activeOpacity={0.85}>
           <View style={[styles.iconWrap, styles.trialIcon]}><Sparkles size={24} color={colors.pink[900]} /></View>
           <View style={styles.copy}><Text style={styles.optionTitle}>Try for Free</Text><Text style={styles.optionDescription}>Experience Presenza and explore smart attendance management before subscribing.</Text></View>
           <ArrowRight size={20} color={colors.pink[900]} />

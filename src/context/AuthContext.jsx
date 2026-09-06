@@ -10,11 +10,22 @@ import { API_BASE_URL } from '../config';
 
 const AuthContext = createContext();
 
+const readLocalImageAsBlob = uri => new Promise((resolve, reject) => {
+  const request = new XMLHttpRequest();
+  request.onload = () => resolve(request.response);
+  request.onerror = () => reject(new Error('Could not read the selected image.'));
+  request.ontimeout = () => reject(new Error('Timed out while reading the selected image.'));
+  request.responseType = 'blob';
+  request.open('GET', uri, true);
+  request.send();
+});
+
 const TOKEN_KEY = 'presencehub_token';
 const USER_KEY = 'Presenza_user';
 const ONBOARDED_KEY = 'Presenza_onboarded';
 const ENVIRONMENT_KEY = 'Presenza_environment';
 const SUBSCRIPTION_KEY = 'Presenza_subscription';
+const ORG_CREATION_KEY = 'Presenza_org_creation';
 
 /* ─────────────────────────────────────────────
    AUTH PROVIDER
@@ -220,37 +231,20 @@ export const AuthProvider = ({ children }) => {
   ───────────────────────────────────────────── */
   const updateProfilePicture = async (uri) => {
     if (!user || !token || !uri) {
-      return;
+      return { success: false, error: 'You must be signed in to upload a profile picture.' };
     }
 
     try {
       const filename =
         uri.split('/').pop() || `avatar_${Date.now()}.jpg`;
 
-      const match = /\.(\w+)$/.exec(filename);
-
-      const extension = match
-        ? match[1].toLowerCase()
-        : 'jpg';
-
-      const mimeTypes = {
-        jpg: 'image/jpeg',
-        jpeg: 'image/jpeg',
-        png: 'image/png',
-        webp: 'image/webp',
-        gif: 'image/gif',
-      };
-
-      const type =
-        mimeTypes[extension] || 'image/jpeg';
-
       const formData = new FormData();
 
-      formData.append('avatar', {
-        uri,
-        name: filename,
-        type,
-      });
+      const imageBlob = await readLocalImageAsBlob(uri);
+      if (!imageBlob) {
+        throw new Error('Could not read the selected image.');
+      }
+      formData.append('avatar', imageBlob, filename);
 
       const res = await fetch(
         `${API_BASE_URL}/users/me/avatar`,
@@ -259,7 +253,6 @@ export const AuthProvider = ({ children }) => {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: 'application/json',
-            'Content-Type': 'multipart/form-data',
           },
           body: formData,
         }
@@ -285,6 +278,7 @@ export const AuthProvider = ({ children }) => {
           USER_KEY,
           JSON.stringify(mappedUser)
         );
+        return { success: true, user: mappedUser };
       } else {
         const errorText = await res.text();
 
@@ -293,7 +287,7 @@ export const AuthProvider = ({ children }) => {
           errorText
         );
 
-        await fallbackAvatarUpdate(uri);
+        return { success: false, error: errorText || 'Failed to update profile picture.' };
       }
     } catch (error) {
       console.warn(
@@ -301,7 +295,7 @@ export const AuthProvider = ({ children }) => {
         error
       );
 
-      await fallbackAvatarUpdate(uri);
+      return { success: false, error: error.message || 'Failed to update profile picture.' };
     }
   };
 
@@ -415,6 +409,30 @@ export const AuthProvider = ({ children }) => {
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
   };
 
+  const completeOrganizationCreation = async ({ organizationName, adminEmail, firstName, lastName }) => {
+    const adminUser = {
+      id: 'local-org-admin',
+      name: `${firstName || 'Admin'} ${lastName || ''}`.trim() || (adminEmail || 'Org Admin'),
+      email: adminEmail || 'admin@company.com',
+      role: 'admin',
+      avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(adminEmail || 'org-admin')}`,
+      profile_image: null,
+      mustChangePassword: false,
+      token: 'mock-admin-token',
+    };
+
+    setToken(adminUser.token);
+    setUser(adminUser);
+    await AsyncStorage.setItem(TOKEN_KEY, adminUser.token);
+    await AsyncStorage.setItem(USER_KEY, JSON.stringify(adminUser));
+    await AsyncStorage.setItem(ORG_CREATION_KEY, JSON.stringify({
+      organizationName,
+      adminEmail,
+      createdAt: new Date().toISOString(),
+    }));
+    await completeOnboarding();
+  };
+
   /* ─────────────────────────────────────────────
      CONTEXT
   ───────────────────────────────────────────── */
@@ -428,6 +446,7 @@ export const AuthProvider = ({ children }) => {
         updateProfilePicture,
         updateProfile,
         completePasswordChange,
+        completeOrganizationCreation,
         loading,
         hasOnboarded,
         completeOnboarding,

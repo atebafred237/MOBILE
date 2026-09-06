@@ -232,7 +232,7 @@ export const DataProvider = ({ children }) => {
               notifRes.status
             );
           }
-        } else {
+        } else if (user.role === 'employee') {
           // ── Employee: own attendance history ──
           const attRes = await fetch(
             `${API_BASE_URL}/employee/attendance/history`,
