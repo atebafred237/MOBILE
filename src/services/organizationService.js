@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../config';
 
 const DRAFT_KEY = 'presenza_organization_draft';
 const CREATED_KEY = 'presenza_organization_created';
@@ -58,38 +59,86 @@ export const clearCreatedOrganization = async () => {
 };
 
 export const createOrganization = async (organizationData) => {
-  const safePayload = {
-    organisationType: organizationData.organisationType || 'company',
-    organisationName: organizationData.organisationName?.trim() || '',
-    organisationEmail: organizationData.organisationEmail?.trim() || '',
-    phone: organizationData.phone?.trim() || '',
-    location: organizationData.location?.trim() || '',
-    adminFirstName: organizationData.adminFirstName?.trim() || '',
-    adminLastName: organizationData.adminLastName?.trim() || '',
-    adminEmail: organizationData.adminEmail?.trim() || '',
+  const payload = {
+    organization_name: (organizationData.organizationName || organizationData.organisationName || '').trim(),
+    organization_type: (organizationData.organizationType || organizationData.organisationType || 'company').trim(),
+    email: (organizationData.organizationEmail || organizationData.organisationEmail || '').trim(),
+    phone: (organizationData.phone || '').trim(),
+    location: (organizationData.location || '').trim(),
+    admin_first_name: (organizationData.adminFirstName || '').trim(),
+    admin_last_name: (organizationData.adminLastName || '').trim(),
+    admin_email: (organizationData.adminEmail || '').trim(),
+    admin_password: organizationData.adminPassword || '',
+    admin_password_confirmation: organizationData.adminPasswordConfirmation || organizationData.adminPassword || '',
   };
 
-  await new Promise(resolve => setTimeout(resolve, 1200));
+  try {
+    let body = JSON.stringify(payload);
+    const headers = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    };
 
-  return {
-    success: true,
-    message: 'Organization created successfully.',
-    organization: {
-      id: `org_${Date.now()}`,
-      organisationType: safePayload.organisationType,
-      organisationName: safePayload.organisationName,
-      organisationEmail: safePayload.organisationEmail,
-      phone: safePayload.phone,
-      location: safePayload.location,
+    if (organizationData.logoUri) {
+      const imageBlob = await new Promise((resolve, reject) => {
+        const request = new XMLHttpRequest();
+        request.onload = () => resolve(request.response);
+        request.onerror = () => reject(new Error('Could not read the selected logo.'));
+        request.responseType = 'blob';
+        request.open('GET', organizationData.logoUri, true);
+        request.send();
+      });
+      const formData = new FormData();
+      Object.entries(payload).forEach(([key, value]) => formData.append(key, value));
+      formData.append('logo', imageBlob, organizationData.logoUri.split('/').pop() || `organization-logo-${Date.now()}.jpg`);
+      body = formData;
+      delete headers['Content-Type'];
+    }
+
+    const response = await fetch(`${API_BASE_URL}/organizations/register`, {
+      method: 'POST',
+      headers,
+      body,
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const message = data?.message || data?.error || 'Organization registration failed.';
+      throw new Error(message);
+    }
+
+    const organization = data?.organization || {
+      name: payload.organization_name,
+      organization_type: payload.organization_type,
+      email: payload.email,
+      phone: payload.phone,
+      location: payload.location,
+    };
+
+    const admin = data?.admin_user || {
+      email: payload.admin_email,
+      first_name: payload.admin_first_name,
+      last_name: payload.admin_last_name,
+    };
+
+    await saveCreatedOrganization({
+      ...organization,
+      admin,
       createdAt: new Date().toISOString(),
-    },
-    admin: {
-      id: `admin_${Date.now()}`,
-      firstName: safePayload.adminFirstName,
-      lastName: safePayload.adminLastName,
-      email: safePayload.adminEmail,
-    },
-  };
+    });
+
+    return {
+      success: true,
+      message: data?.message || 'Organization created successfully.',
+      organization,
+      admin,
+      raw: data,
+    };
+  } catch (error) {
+    console.warn('Organization registration API error:', error);
+    throw error;
+  }
 };
 
 export const getOrganizationSetupChecklist = () => [

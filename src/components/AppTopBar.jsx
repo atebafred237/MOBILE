@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Bell, LifeBuoy, LogOut, Settings, User } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth, getProfileAvatarUri } from '../context/AuthContext';
@@ -10,7 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 import ProfileAvatar from './ProfileAvatar';
 
 const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
-  const { user, logout } = useAuth();
+  const { user, organization, logout } = useAuth();
   const { isDark } = useTheme();
   const { adminNotifs, empNotifs, markAdminNotifRead, markEmpNotifRead } = useData();
   const insets = useSafeAreaInsets();
@@ -47,13 +47,9 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
 
   return (
     <View style={[styles.topBar, { height: 100 + insets.top, paddingTop: insets.top }, isDark && styles.darkTopBar, isAttendance && styles.attendanceTopBar]}>
-      <Image
-        source={require('../../assets/new logo transparent.png')}
-        style={styles.logo}
-        resizeMethod="resize"
-        resizeMode="contain"
-        accessibilityLabel="Presenza logo"
-      />
+      <View style={styles.brandGroup}>
+        <Text numberOfLines={2} style={styles.organizationName}>{organization?.name || 'PRESENZA'}</Text>
+      </View>
       <View style={styles.headerTools}>
         <TouchableOpacity style={styles.notificationButton} onPress={() => { setNotificationsVisible(value => !value); setProfileMenuVisible(false); }} accessibilityLabel="Notifications">
           <Bell size={21} color={isDark ? colors.slate[100] : colors.slate[700]} />
@@ -124,7 +120,8 @@ const styles = StyleSheet.create({
   topBar: { height: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.slate[200], zIndex: 20 },
   attendanceTopBar: {},
   darkTopBar: { backgroundColor: colors.slate[800], borderBottomColor: colors.slate[600] },
-  logo: { width: 200, height: 48, resizeMode: 'contain' },
+  brandGroup: { alignItems: 'center', justifyContent: 'center', width: 220, minWidth: 0 },
+  organizationName: { color: colors.slate[800], fontSize: 16, fontWeight: '800', maxWidth: 220, textAlign: 'center' },
   headerTools: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   notificationButton: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
   notificationBadge: { position: 'absolute', top: 0, right: 0, minWidth: 17, height: 17, paddingHorizontal: 4, borderRadius: 9, backgroundColor: colors.danger, justifyContent: 'center', alignItems: 'center' },

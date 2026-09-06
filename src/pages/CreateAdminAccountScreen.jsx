@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,7 +13,7 @@ import {
 import { Eye, EyeOff } from 'lucide-react-native';
 import { colors, spacing } from '../theme';
 import AppSafeArea from '../components/AppSafeArea';
-import { getOrganizationDraft, saveOrganizationDraft } from '../services/organizationService';
+import { createOrganization, getOrganizationDraft, saveOrganizationDraft } from '../services/organizationService';
 
 const validateEmail = value => /^\S+@\S+\.\S+$/.test(value.trim());
 const isStrongPassword = value => /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/.test(value);
@@ -77,12 +78,37 @@ const CreateAdminAccountScreen = ({ navigation }) => {
         adminFirstName: form.adminFirstName.trim(),
         adminLastName: form.adminLastName.trim(),
         adminEmail: form.adminEmail.trim(),
+        adminPassword: form.password,
       };
       await saveOrganizationDraft(nextDraft);
-      navigation.navigate('OrganisationCreatedScreen', {
-        organizationName: draft.organisationName || 'Your organisation',
+
+      const result = await createOrganization({
+        organizationName: draft.organisationName || draft.organizationName || '',
+        organizationType: draft.organisationType || draft.organizationType || 'company',
+        organizationEmail: draft.organisationEmail || draft.organizationEmail || '',
+        phone: draft.phone || '',
+        location: draft.location || '',
+        adminFirstName: form.adminFirstName.trim(),
+        adminLastName: form.adminLastName.trim(),
         adminEmail: form.adminEmail.trim(),
+        adminPassword: form.password,
+        adminPasswordConfirmation: form.confirmPassword,
+        logoUri: draft.logoUri || '',
       });
+
+      if (!result?.success) {
+        throw new Error(result?.message || 'Organization registration failed.');
+      }
+
+      navigation.navigate('OrganisationCreatedScreen', {
+        organizationName: draft.organisationName || draft.organizationName || 'Your organisation',
+        adminEmail: form.adminEmail.trim(),
+        firstName: form.adminFirstName.trim(),
+        lastName: form.adminLastName.trim(),
+        password: form.password,
+      });
+    } catch (error) {
+      Alert.alert('Organization setup failed', error?.message || 'Please try again.');
     } finally {
       setLoading(false);
     }

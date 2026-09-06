@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CheckCircle2 } from 'lucide-react-native';
 import { colors, spacing } from '../theme';
 import AppSafeArea from '../components/AppSafeArea';
@@ -14,15 +14,29 @@ const OrganisationCreatedScreen = ({ navigation, route }) => {
     try {
       const organizationName = route.params?.organizationName || 'Your organisation';
       const adminEmail = route.params?.adminEmail || 'admin@company.com';
-      await completeOrganizationCreation({
+      const password = route.params?.password || '';
+
+      const result = await completeOrganizationCreation({
         organizationName,
         adminEmail,
         firstName: route.params?.firstName,
         lastName: route.params?.lastName,
+        password,
       });
+
+      if (!result?.success) {
+        throw new Error(result?.error || 'Unable to sign in to your new organisation.');
+      }
+
       navigation.reset({
         index: 0,
         routes: [{ name: 'AdminRoot' }],
+      });
+    } catch (error) {
+      Alert.alert('Sign-in failed', error?.message || 'Please log in with your admin account.');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'SignIn' }],
       });
     } finally {
       setSubmitting(false);

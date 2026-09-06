@@ -26,12 +26,27 @@ const ONBOARDED_KEY = 'Presenza_onboarded';
 const ENVIRONMENT_KEY = 'Presenza_environment';
 const SUBSCRIPTION_KEY = 'Presenza_subscription';
 const ORG_CREATION_KEY = 'Presenza_org_creation';
+const ORGANIZATION_KEY = 'Presenza_organization';
+
+const fetchOrganizationForToken = async (apiToken) => {
+  const response = await fetch(`${API_BASE_URL}/organization`, {
+    headers: {
+      Authorization: `Bearer ${apiToken}`,
+      Accept: 'application/json',
+    },
+  });
+
+  if (!response.ok) return null;
+  const json = await response.json();
+  return json.data ?? json;
+};
 
 /* ─────────────────────────────────────────────
    AUTH PROVIDER
 ───────────────────────────────────────────── */
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [organization, setOrganization] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hasOnboarded, setHasOnboarded] = useState(false);
@@ -57,6 +72,9 @@ export const AuthProvider = ({ children }) => {
 
         const savedToken = await AsyncStorage.getItem(TOKEN_KEY);
         const savedUser = await AsyncStorage.getItem(USER_KEY);
+        const savedOrganization = await AsyncStorage.getItem(ORGANIZATION_KEY);
+
+        if (savedOrganization) setOrganization(JSON.parse(savedOrganization));
 
         if (savedToken) {
           try {
@@ -71,10 +89,15 @@ export const AuthProvider = ({ children }) => {
               const json = await res.json();
 
               const apiUser = json.data ?? json;
-              const mappedUser = mapUser(apiUser, savedToken);
+              const apiOrganization = await fetchOrganizationForToken(savedToken).catch(() => null);
+              const mappedUser = mapUser(apiUser, savedToken, apiOrganization);
 
               setToken(savedToken);
               setUser(mappedUser);
+              if (apiOrganization) {
+                setOrganization(apiOrganization);
+                await AsyncStorage.setItem(ORGANIZATION_KEY, JSON.stringify(apiOrganization));
+              }
 
               await AsyncStorage.setItem(
                 USER_KEY,
@@ -168,10 +191,12 @@ export const AuthProvider = ({ children }) => {
       }
 
       const apiUser = json.user ?? json.data ?? json;
-      const mappedUser = mapUser(apiUser, apiToken);
+      const apiOrganization = await fetchOrganizationForToken(apiToken).catch(() => null);
+      const mappedUser = mapUser(apiUser, apiToken, apiOrganization);
 
       setToken(apiToken);
       setUser(mappedUser);
+      setOrganization(apiOrganization);
 
       await AsyncStorage.setItem(
         TOKEN_KEY,
@@ -182,6 +207,10 @@ export const AuthProvider = ({ children }) => {
         USER_KEY,
         JSON.stringify(mappedUser)
       );
+
+      if (apiOrganization) {
+        await AsyncStorage.setItem(ORGANIZATION_KEY, JSON.stringify(apiOrganization));
+      }
 
       await completeOnboarding();
 
@@ -221,6 +250,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setUser(null);
       setToken(null);
+      setOrganization(null);
 
       await clearStorage();
     }
@@ -409,28 +439,27 @@ export const AuthProvider = ({ children }) => {
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
   };
 
-  const completeOrganizationCreation = async ({ organizationName, adminEmail, firstName, lastName }) => {
-    const adminUser = {
-      id: 'local-org-admin',
-      name: `${firstName || 'Admin'} ${lastName || ''}`.trim() || (adminEmail || 'Org Admin'),
-      email: adminEmail || 'admin@company.com',
-      role: 'admin',
-      avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(adminEmail || 'org-admin')}`,
-      profile_image: null,
-      mustChangePassword: false,
-      token: 'mock-admin-token',
-    };
+  const completeOrganizationCreation = async ({ organizationName, adminEmail, firstName, lastName, password }) => {
+    if (!adminEmail || !password) {
+      return {
+        success: false,
+        error: 'Administrator email and password are required to continue.',
+      };
+    }
 
-    setToken(adminUser.token);
-    setUser(adminUser);
-    await AsyncStorage.setItem(TOKEN_KEY, adminUser.token);
-    await AsyncStorage.setItem(USER_KEY, JSON.stringify(adminUser));
-    await AsyncStorage.setItem(ORG_CREATION_KEY, JSON.stringify({
-      organizationName,
-      adminEmail,
-      createdAt: new Date().toISOString(),
-    }));
-    await completeOnboarding();
+    const result = await login(adminEmail, password);
+
+    if (result.success) {
+      await AsyncStorage.setItem(ORG_CREATION_KEY, JSON.stringify({
+        organizationName,
+        adminEmail,
+        firstName: firstName || '',
+        lastName: lastName || '',
+        createdAt: new Date().toISOString(),
+      }));
+    }
+
+    return result;
   };
 
   /* ─────────────────────────────────────────────
@@ -447,6 +476,7 @@ export const AuthProvider = ({ children }) => {
         updateProfile,
         completePasswordChange,
         completeOrganizationCreation,
+        organization,
         loading,
         hasOnboarded,
         completeOnboarding,
@@ -537,7 +567,7 @@ export const getProfileAvatarUri = (user) => {
 /* ─────────────────────────────────────────────
    MAP API USER → FRONTEND USER
 ───────────────────────────────────────────── */
-function mapUser(apiUser = {}, token = null) {
+function mapUser(apiUser = {}, token = null, organization = null) {
   const profileImage =
     apiUser.profile_image ??
     apiUser.avatar ??
@@ -593,6 +623,7 @@ function mapUser(apiUser = {}, token = null) {
       null,
 
     token,
+    organization,
   };
 }
 
@@ -603,6 +634,7 @@ async function clearStorage() {
   await AsyncStorage.multiRemove([
     TOKEN_KEY,
     USER_KEY,
+    ORGANIZATION_KEY,
   ]);
 }
 

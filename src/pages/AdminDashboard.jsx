@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Alert,
+  Animated,
   View,
   Text,
   ScrollView,
@@ -31,6 +32,9 @@ import {
   LockKeyhole,
   Server,
   CheckCircle2,
+  Sparkles,
+  ArrowRight,
+  X,
 } from 'lucide-react-native';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -481,6 +485,8 @@ const getAttendanceTrendData = (
 |--------------------------------------------------------------------------
 */
 
+const ONBOARDING_DISMISS_KEY = 'presenza_admin_onboarding_notification_dismissed';
+
 const AdminDashboard = () => {
   const { attendance, adminNotifs } =
     useData();
@@ -490,6 +496,8 @@ const AdminDashboard = () => {
 
   const { t } = useLanguage();
   const [showSetupNotification, setShowSetupNotification] = useState(false);
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const slideAnim = React.useRef(new Animated.Value(-12)).current;
 
   /*
    * Temporary diagnostic logging.
@@ -529,24 +537,27 @@ const AdminDashboard = () => {
     useState(true);
 
   const dismissSetupNotification = async () => {
+    await AsyncStorage.setItem(ONBOARDING_DISMISS_KEY, 'true');
     setShowSetupNotification(false);
-    await AsyncStorage.setItem('presenza_admin_onboarding_notification_dismissed', 'true');
   };
 
-  const openOrganizationSetup = () => {
+  const openOrganizationSetup = async () => {
+    await AsyncStorage.setItem(ONBOARDING_DISMISS_KEY, 'true');
+    setShowSetupNotification(false);
+
     const parentNavigator = navigation?.getParent ? navigation.getParent() : null;
-    if (parentNavigator) {
-      parentNavigator.navigate('OrganisationSetupScreen');
+    if (parentNavigator && typeof parentNavigator.navigate === 'function') {
+      parentNavigator.navigate('AdminManagement');
       return;
     }
 
-    navigation.navigate('OrganisationSetupScreen');
+    navigation.navigate('AdminManagement');
   };
 
   useEffect(() => {
     const checkSetupNotification = async () => {
       try {
-        const dismissed = await AsyncStorage.getItem('presenza_admin_onboarding_notification_dismissed');
+        const dismissed = await AsyncStorage.getItem(ONBOARDING_DISMISS_KEY);
         setShowSetupNotification(!dismissed);
       } catch (error) {
         console.warn('Could not read onboarding notification state:', error);
@@ -556,6 +567,21 @@ const AdminDashboard = () => {
 
     checkSetupNotification();
   }, []);
+
+  useEffect(() => {
+    if (!showSetupNotification) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: -12, duration: 180, useNativeDriver: true }),
+      ]).start();
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 220, useNativeDriver: true }),
+    ]).start();
+  }, [showSetupNotification, fadeAnim, slideAnim]);
 
   /*
   |--------------------------------------------------------------------------
@@ -814,25 +840,67 @@ const AdminDashboard = () => {
   return (
     <View style={styles.containerWrapper}>
       {showSetupNotification && (
-        <View style={styles.setupNotificationCard}>
-          <View style={styles.setupNotificationHeader}>
-            <Text style={styles.setupNotificationTitle}>Welcome to PRESENZA! 👋</Text>
-            <TouchableOpacity onPress={dismissSetupNotification} accessibilityLabel="Dismiss welcome notification">
-              <Text style={styles.setupNotificationClose}>Close</Text>
+        <Animated.View
+          pointerEvents="box-none"
+          style={[
+            styles.setupNotificationOverlay,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <View style={styles.setupNotificationCard}>
+            <View style={styles.setupNotificationHeader}>
+              <View style={styles.setupNotificationBadge}>
+                <Sparkles size={18} color={colors.white} />
+              </View>
+
+              <View style={styles.setupNotificationTitleWrap}>
+                <Text style={styles.setupNotificationTitle}>Complete your organisation setup</Text>
+                <Text style={styles.setupNotificationSubtitle}>Get your team, departments, and devices ready.</Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={dismissSetupNotification}
+                accessibilityLabel="Dismiss onboarding notification"
+                style={styles.setupNotificationCloseButton}
+              >
+                <X size={16} color={colors.slate[500]} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.setupNotificationMessage}>
+              Finish onboarding to add departments, employees, kiosks, and attendance settings for a smooth rollout.
+            </Text>
+
+            <View style={styles.setupNotificationProgressWrap}>
+              <View style={styles.setupNotificationProgressRow}>
+                <Text style={styles.setupNotificationProgressLabel}>Setup progress</Text>
+                <Text style={styles.setupNotificationProgressValue}>4 of 5 steps</Text>
+              </View>
+
+              <View style={styles.setupNotificationProgressBar}>
+                <View style={styles.setupNotificationProgressFill} />
+              </View>
+            </View>
+
+            <View style={styles.setupNotificationActions}>
+              <TouchableOpacity style={styles.setupNotificationSecondaryButton} onPress={dismissSetupNotification}>
+                <Text style={styles.setupNotificationSecondaryText}>Skip</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.setupNotificationPrimaryButton} onPress={openOrganizationSetup}>
+                <Text style={styles.setupNotificationPrimaryText}>Continue setup</Text>
+                <ArrowRight size={16} color={colors.white} />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity style={styles.setupNotificationSimpleAction} onPress={dismissSetupNotification}>
+              <Text style={styles.setupNotificationSimpleText}>Got it</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.setupNotificationMessage}>Your organisation is ready. Complete these steps to start managing attendance.</Text>
-          <View style={styles.setupNotificationList}>
-            <Text style={styles.setupNotificationItem}>1. Create departments</Text>
-            <Text style={styles.setupNotificationItem}>2. Add employee accounts</Text>
-            <Text style={styles.setupNotificationItem}>3. Register attendance devices/kiosks</Text>
-            <Text style={styles.setupNotificationItem}>4. Configure attendance</Text>
-            <Text style={styles.setupNotificationItem}>5. Start using PRESENZA</Text>
-          </View>
-          <TouchableOpacity style={styles.setupNotificationButton} onPress={openOrganizationSetup}>
-            <Text style={styles.setupNotificationButtonText}>Complete setup</Text>
-          </TouchableOpacity>
-        </View>
+        </Animated.View>
       )}
 
       <ScrollView
@@ -1936,10 +2004,177 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
 
+  containerWrapper: {
+    flex: 1,
+    backgroundColor: colors.slate[50],
+    position: 'relative',
+  },
+
   container: {
     flex: 1,
     backgroundColor:
       colors.slate[50],
+  },
+
+  setupNotificationOverlay: {
+    position: 'absolute',
+    top: 18,
+    right: 16,
+    left: 16,
+    zIndex: 30,
+  },
+
+  setupNotificationCard: {
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(136, 19, 55, 0.12)',
+  },
+
+  setupNotificationHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 10,
+  },
+
+  setupNotificationBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: colors.pink[800],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  setupNotificationTitleWrap: {
+    flex: 1,
+  },
+
+  setupNotificationTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.slate[900],
+    letterSpacing: 0.2,
+  },
+
+  setupNotificationSubtitle: {
+    fontSize: 12,
+    color: colors.slate[500],
+    marginTop: 2,
+  },
+
+  setupNotificationCloseButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.slate[100],
+  },
+
+  setupNotificationMessage: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: colors.slate[600],
+    marginBottom: 14,
+  },
+
+  setupNotificationProgressWrap: {
+    marginBottom: 14,
+  },
+
+  setupNotificationProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+
+  setupNotificationProgressLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.slate[600],
+  },
+
+  setupNotificationProgressValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.pink[800],
+  },
+
+  setupNotificationProgressBar: {
+    height: 8,
+    backgroundColor: colors.slate[200],
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+
+  setupNotificationProgressFill: {
+    width: '80%',
+    height: '100%',
+    backgroundColor: colors.pink[800],
+    borderRadius: 999,
+  },
+
+  setupNotificationActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 8,
+  },
+
+  setupNotificationSecondaryButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.slate[200],
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  setupNotificationSecondaryText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.slate[700],
+  },
+
+  setupNotificationPrimaryButton: {
+    flex: 1.4,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: colors.pink[800],
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+
+  setupNotificationPrimaryText: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  setupNotificationSimpleAction: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+
+  setupNotificationSimpleText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.pink[800],
   },
 
   header: {

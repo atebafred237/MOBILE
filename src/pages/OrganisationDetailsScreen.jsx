@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -8,6 +9,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from 'react-native';
 import { colors, spacing } from '../theme';
 import AppSafeArea from '../components/AppSafeArea';
@@ -21,6 +23,7 @@ const OrganisationDetailsScreen = ({ navigation }) => {
     organisationEmail: '',
     phone: '',
     location: '',
+    logoUri: '',
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -34,6 +37,7 @@ const OrganisationDetailsScreen = ({ navigation }) => {
           organisationEmail: draft.organisationEmail || '',
           phone: draft.phone || '',
           location: draft.location || '',
+          logoUri: draft.logoUri || '',
         });
       }
     };
@@ -86,6 +90,25 @@ const OrganisationDetailsScreen = ({ navigation }) => {
     }
   };
 
+  const chooseLogo = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      const logoUri = result.assets[0].uri;
+      setForm(current => ({ ...current, logoUri }));
+      const draft = (await getOrganizationDraft()) || {};
+      await saveOrganizationDraft({ ...draft, logoUri });
+    }
+  };
+
   return (
     <AppSafeArea style={styles.container}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -97,6 +120,10 @@ const OrganisationDetailsScreen = ({ navigation }) => {
           <Text style={styles.eyebrow}>ORGANISATION</Text>
           <Text style={styles.title}>Tell us about your organisation</Text>
           <Text style={styles.subtitle}>Enter a few details to get your PRESENZA workspace ready.</Text>
+
+          <TouchableOpacity style={styles.logoPicker} onPress={chooseLogo} activeOpacity={0.85}>
+            {form.logoUri ? <Image source={{ uri: form.logoUri }} style={styles.logoPreview} /> : <Text style={styles.logoPickerText}>Add organisation logo</Text>}
+          </TouchableOpacity>
 
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Organisation name</Text>
@@ -188,6 +215,9 @@ const styles = StyleSheet.create({
   },
   primaryButtonDisabled: { opacity: 0.7 },
   primaryButtonText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  logoPicker: { width: 92, height: 92, borderRadius: 46, borderWidth: 1, borderColor: colors.pink[300], backgroundColor: colors.pink[50], alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: spacing.xl, overflow: 'hidden' },
+  logoPreview: { width: '100%', height: '100%' },
+  logoPickerText: { color: colors.pink[900], fontSize: 11, fontWeight: '700', textAlign: 'center', paddingHorizontal: 8 },
 });
 
 export default OrganisationDetailsScreen;
