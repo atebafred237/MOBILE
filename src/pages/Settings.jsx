@@ -619,7 +619,7 @@ const Settings = () => {
 								<TouchableOpacity style={styles.workingTimeButton} onPress={() => setWorkingHoursPicker('end')}><Text style={styles.workingHoursLabel}>End time</Text><Text style={styles.workingTimeValue}>{workingHours.endTime}</Text></TouchableOpacity>
 							</View>
 							<Text style={styles.workingTimezone}>Timezone: {workingHours.timezone}</Text>
-							{workingHoursPicker ? <DateTimePicker value={timeToDate(workingHours[workingHoursPicker === 'start' ? 'startTime' : 'endTime'])} mode="time" is24Hour display="default" onChange={(event, date) => { const picker = workingHoursPicker; setWorkingHoursPicker(null); if (date && event?.type !== 'dismissed') { const value = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }); setWorkingHours(current => ({ ...current, [picker === 'start' ? 'startTime' : 'endTime']: value })); } }} /> : null}
+							{workingHoursPicker ? <DateTimePicker value={timeToDate(workingHours[workingHoursPicker === 'start' ? 'startTime' : 'endTime'])} mode="time" is24Hour display="default" onValueChange={(_event, date) => { const picker = workingHoursPicker; setWorkingHoursPicker(null); if (date) { const value = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }); setWorkingHours(current => ({ ...current, [picker === 'start' ? 'startTime' : 'endTime']: value })); } }} onDismiss={() => setWorkingHoursPicker(null)} /> : null}
 							<TouchableOpacity style={[styles.saveWorkingHoursButton, workingHoursSaving && styles.disabledButton]} onPress={saveWorkingHours} disabled={workingHoursSaving}><Text style={styles.saveWorkingHoursText}>{workingHoursSaving ? 'Saving...' : 'Save working hours'}</Text></TouchableOpacity>
 						</>}
 					</View>

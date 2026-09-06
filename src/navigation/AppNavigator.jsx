@@ -189,7 +189,7 @@ const EmployeeTabsContent = () => {
 };
 
 const AppNavigator = () => {
-  const { user, loading, hasOnboarded, environment } = useAuth();
+  const { user, loading, hasOnboarded, environment, loggedOut } = useAuth();
 
   useEffect(() => {
     if (!loading && user) {
@@ -212,8 +212,9 @@ const AppNavigator = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator
+        key={user ? 'authenticated' : loggedOut ? 'logged-out' : 'unauthenticated'}
         screenOptions={{ headerShown: false }}
-        initialRouteName={!user ? (environment ? 'SignIn' : hasOnboarded ? 'EnvironmentSelection' : 'Onboarding') : undefined}
+        initialRouteName={!user ? (loggedOut ? 'AccessOptions' : environment ? 'SignIn' : hasOnboarded ? 'EnvironmentSelection' : 'Onboarding') : undefined}
       >
         {!user ? (
           <>

@@ -1057,6 +1057,14 @@ const AdminDashboard = () => {
           }
           change="Unread"
         />
+      </View>
+
+      <View style={styles.dailyStatsSection}>
+        <View style={styles.dailyStatsHeader}>
+          <Text style={styles.dailyStatsTitle}>Daily attendance</Text>
+          <Text style={styles.dailyStatsSubtitle}>Today&apos;s attendance status</Text>
+        </View>
+        <View style={styles.dailyMetricsGrid}>
 
         <StatCard
           title="Present today"
@@ -1085,6 +1093,7 @@ const AdminDashboard = () => {
           icon={HelpCircle}
           change="Today"
         />
+        </View>
       </View>
 
       {/* ANALYTICS */}
@@ -2422,6 +2431,40 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent:
       'space-between',
+    padding: spacing.md,
+  },
+
+  dailyStatsSection: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
+    backgroundColor: colors.slate[50],
+    borderWidth: 1,
+    borderColor: colors.slate[200],
+    borderRadius: 16,
+    paddingTop: spacing.md,
+  },
+
+  dailyStatsHeader: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.xs,
+  },
+
+  dailyStatsTitle: {
+    color: colors.slate[900],
+    fontSize: 16,
+    fontWeight: '800',
+  },
+
+  dailyStatsSubtitle: {
+    color: colors.slate[500],
+    fontSize: 12,
+    marginTop: 3,
+  },
+
+  dailyMetricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     padding: spacing.md,
   },
 

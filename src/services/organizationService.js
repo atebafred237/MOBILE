@@ -1,4 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { File } from 'expo-file-system';
+import { Platform } from 'react-native';
 import { API_BASE_URL } from '../config';
 
 const DRAFT_KEY = 'presenza_organization_draft';
@@ -84,17 +86,29 @@ export const createOrganization = async (organizationData) => {
     };
 
     if (organizationData.logoUri) {
-      const imageBlob = await new Promise((resolve, reject) => {
-        const request = new XMLHttpRequest();
-        request.onload = () => resolve(request.response);
-        request.onerror = () => reject(new Error('Could not read the selected logo.'));
-        request.responseType = 'blob';
-        request.open('GET', organizationData.logoUri, true);
-        request.send();
-      });
+      const filename = organizationData.logoUri.split('/').pop() || `organization-logo-${Date.now()}.jpg`;
       const formData = new FormData();
-      Object.entries(payload).forEach(([key, value]) => formData.append(key, value));
-      formData.append('logo', imageBlob, organizationData.logoUri.split('/').pop() || `organization-logo-${Date.now()}.jpg`);
+      Object.entries(payload).forEach(([key, value]) => {
+        if (key === 'working_days') {
+          value.forEach(day => formData.append('working_days[]', String(day)));
+          return;
+        }
+
+        formData.append(key, String(value));
+      });
+      if (Platform.OS === 'web') {
+        const imageBlob = await new Promise((resolve, reject) => {
+          const request = new XMLHttpRequest();
+          request.onload = () => resolve(request.response);
+          request.onerror = () => reject(new Error('Could not read the selected logo.'));
+          request.responseType = 'blob';
+          request.open('GET', organizationData.logoUri, true);
+          request.send();
+        });
+        formData.append('logo', imageBlob, filename);
+      } else {
+        formData.append('logo', new File(organizationData.logoUri), filename);
+      }
       body = formData;
       delete headers['Content-Type'];
     }

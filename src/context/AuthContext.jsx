@@ -5,7 +5,9 @@ import React, {
   useState,
   useEffect,
 } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { File } from 'expo-file-system';
 import { API_BASE_URL } from '../config';
 
 const AuthContext = createContext();
@@ -52,6 +54,7 @@ export const AuthProvider = ({ children }) => {
   const [hasOnboarded, setHasOnboarded] = useState(false);
   const [environment, setEnvironment] = useState(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [loggedOut, setLoggedOut] = useState(false);
 
   /* ─────────────────────────────────────────────
      RESTORE SESSION ON APP START
@@ -196,6 +199,7 @@ export const AuthProvider = ({ children }) => {
 
       setToken(apiToken);
       setUser(mappedUser);
+      setLoggedOut(false);
       setOrganization(apiOrganization);
 
       await AsyncStorage.setItem(
@@ -251,6 +255,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setToken(null);
       setOrganization(null);
+      setLoggedOut(true);
 
       await clearStorage();
     }
@@ -270,11 +275,15 @@ export const AuthProvider = ({ children }) => {
 
       const formData = new FormData();
 
-      const imageBlob = await readLocalImageAsBlob(uri);
-      if (!imageBlob) {
-        throw new Error('Could not read the selected image.');
+      if (Platform.OS === 'web') {
+        const imageBlob = await readLocalImageAsBlob(uri);
+        if (!imageBlob) {
+          throw new Error('Could not read the selected image.');
+        }
+        formData.append('avatar', imageBlob, filename);
+      } else {
+        formData.append('avatar', new File(uri), filename);
       }
-      formData.append('avatar', imageBlob, filename);
 
       const res = await fetch(
         `${API_BASE_URL}/users/me/avatar`,
@@ -484,6 +493,7 @@ export const AuthProvider = ({ children }) => {
         selectEnvironment,
         subscriptionStatus,
         setCompanySubscription,
+        loggedOut,
       }}
     >
       {children}

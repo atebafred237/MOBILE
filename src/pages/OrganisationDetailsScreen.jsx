@@ -143,13 +143,17 @@ const OrganisationDetailsScreen = ({ navigation }) => {
     setTimePicker(picker);
   };
 
-  const handleTimeChange = async (event, date) => {
+  const handleTimeChange = async (_event, date) => {
     const picker = timePicker;
     setTimePicker(null);
-    if (!date || event?.type === 'dismissed') return;
+    if (!date) return;
 
     const value = formatTime(date);
     setForm(current => ({ ...current, [picker === 'start' ? 'startTime' : 'endTime']: value }));
+  };
+
+  const handleTimeDismiss = () => {
+    setTimePicker(null);
   };
 
   return (
@@ -189,7 +193,7 @@ const OrganisationDetailsScreen = ({ navigation }) => {
                 <Text style={styles.timeLabel}>End</Text><Text style={styles.timeValue}>{form.endTime}</Text>
               </TouchableOpacity>
             </View>
-            {timePicker ? <DateTimePicker value={new Date(`1970-01-01T${timePicker === 'start' ? form.startTime : form.endTime}:00`)} mode="time" is24Hour display="default" onChange={handleTimeChange} /> : null}
+            {timePicker ? <DateTimePicker value={new Date(`1970-01-01T${timePicker === 'start' ? form.startTime : form.endTime}:00`)} mode="time" is24Hour display="default" onValueChange={handleTimeChange} onDismiss={handleTimeDismiss} /> : null}
           </View>
 
           <View style={styles.fieldGroup}>

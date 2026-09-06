@@ -210,7 +210,7 @@ const EmployeeAttendance = () => {
                 value={datePickerValue}
                 mode="date"
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(event, date) => {
+                onValueChange={(event, date) => {
                   if (date) {
                     setDatePickerValue(date);
                   }

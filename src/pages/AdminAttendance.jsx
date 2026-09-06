@@ -944,18 +944,8 @@ const AdminAttendance = () => {
   ======================================================= */
 
   const onDateChange = (
-    event,
     date
   ) => {
-
-    if (
-      Platform.OS ===
-      'android'
-    ) {
-      setShowDatePicker(
-        false
-      );
-    }
 
     if (!date) {
       return;
@@ -2000,9 +1990,10 @@ const AdminAttendance = () => {
 
                 display="default"
 
-                onChange={
+                onValueChange={
                   onDateChange
                 }
+                onDismiss={() => setShowDatePicker(false)}
               />
             ))}
 

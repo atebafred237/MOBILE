@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme';
 import { useTheme } from '../context/ThemeContext';
 import ProfileAvatar from './ProfileAvatar';
+import { SERVER_BASE_URL } from '../config';
 
 const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
   const { user, organization, logout } = useAuth();
@@ -25,6 +26,13 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
   const markNotificationRead = user?.role === 'admin' ? markAdminNotifRead : markEmpNotifRead;
   const menuTop = 100 + insets.top;
   const profileAvatarUri = getProfileAvatarUri(user, user?.name || user?.email || 'User');
+  const organizationLogo = organization?.logo_url || organization?.metadata?.logo_path || organization?.logoUrl;
+  const organizationLogoUri = organizationLogo
+    ? organizationLogo.startsWith('http')
+      ? organizationLogo
+      : `${SERVER_BASE_URL}/${organizationLogo.replace(/^\/+/, '')}`
+    : null;
+  const headerAvatarUri = organizationLogoUri || profileAvatarUri;
 
   useEffect(() => {
     const popupVisible = notificationsVisible || profileMenuVisible;
@@ -48,6 +56,7 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
   return (
     <View style={[styles.topBar, { height: 100 + insets.top, paddingTop: insets.top }, isDark && styles.darkTopBar, isAttendance && styles.attendanceTopBar]}>
       <View style={styles.brandGroup}>
+        {organizationLogoUri ? <ProfileAvatar uri={organizationLogoUri} name={organization?.name} style={styles.organizationLogo} /> : null}
         <Text numberOfLines={2} style={styles.organizationName}>{organization?.name || 'PRESENZA'}</Text>
       </View>
       <View style={styles.headerTools}>
@@ -56,7 +65,7 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
           {unreadCount > 0 && <View style={styles.notificationBadge}><Text style={styles.notificationCount}>{unreadCount}</Text></View>}
         </TouchableOpacity>
         <TouchableOpacity style={styles.profileButton} onPress={() => { setProfileMenuVisible(value => !value); setNotificationsVisible(false); }} accessibilityLabel="Open profile menu">
-          <ProfileAvatar uri={profileAvatarUri} name={user?.name} style={styles.profileAvatar} />
+          <ProfileAvatar uri={headerAvatarUri} name={organization?.name || user?.name} style={styles.profileAvatar} />
         </TouchableOpacity>
       </View>
       {notificationsVisible && (
@@ -91,7 +100,7 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
             <Pressable style={styles.modalBackdrop} onPress={() => setProfileMenuVisible(false)} accessibilityLabel="Close profile menu" />
             <Animated.View style={[styles.profileMenu, { top: menuTop }, isDark && styles.darkMenu, isAttendance && styles.attendanceProfileMenu, popupStyle]}>
           <View style={styles.profileMenuHeader}>
-            <ProfileAvatar uri={profileAvatarUri} name={user?.name} style={styles.menuAvatar} />
+            <ProfileAvatar uri={headerAvatarUri} name={organization?.name || user?.name} style={styles.menuAvatar} />
             <View><Text style={styles.menuTitle}>{user?.name || 'User Profile'}</Text><Text style={styles.menuEmail}>{user?.email || 'user@example.com'}</Text></View>
           </View>
           <View style={styles.menuDivider} />
@@ -120,8 +129,9 @@ const styles = StyleSheet.create({
   topBar: { height: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.slate[200], zIndex: 20 },
   attendanceTopBar: {},
   darkTopBar: { backgroundColor: colors.slate[800], borderBottomColor: colors.slate[600] },
-  brandGroup: { alignItems: 'center', justifyContent: 'center', width: 220, minWidth: 0 },
-  organizationName: { color: colors.slate[800], fontSize: 16, fontWeight: '800', maxWidth: 220, textAlign: 'center' },
+  brandGroup: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', width: 250, minWidth: 0, gap: spacing.sm },
+  organizationLogo: { width: 32, height: 32, borderRadius: 8, backgroundColor: colors.slate[200] },
+  organizationName: { color: colors.slate[800], fontSize: 16, fontWeight: '800', maxWidth: 205, textAlign: 'left' },
   headerTools: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   notificationButton: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
   notificationBadge: { position: 'absolute', top: 0, right: 0, minWidth: 17, height: 17, paddingHorizontal: 4, borderRadius: 9, backgroundColor: colors.danger, justifyContent: 'center', alignItems: 'center' },
@@ -144,7 +154,7 @@ const styles = StyleSheet.create({
   viewAllButton: { alignItems: 'center', paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.slate[100] },
   viewAllText: { color: colors.pink[800], fontSize: 12, fontWeight: '700' },
   profileButton: { borderRadius: 20, borderWidth: 2, borderColor: colors.white },
-  profileAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.slate[200] },
+  profileAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 20, backgroundColor: colors.slate[200] },
   profileMenu: { position: 'absolute', zIndex: 30, right: spacing.md, width: 250, backgroundColor: colors.white, borderRadius: 10, borderWidth: 1, borderColor: colors.slate[200], paddingVertical: spacing.sm, shadowColor: colors.black, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 10, elevation: 8 },
   attendanceProfileMenu: {},
   profileMenuHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.sm },
