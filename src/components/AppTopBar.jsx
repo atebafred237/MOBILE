@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Bell, LifeBuoy, LogOut, Settings, User } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth, getProfileAvatarUri } from '../context/AuthContext';
@@ -88,7 +88,7 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
       {profileMenuVisible && (
         <Modal transparent visible onRequestClose={() => setProfileMenuVisible(false)}>
           <View style={styles.modalLayer}>
-            <TouchableOpacity style={styles.modalBackdrop} onPress={() => setProfileMenuVisible(false)} accessibilityLabel="Close profile menu" />
+            <Pressable style={styles.modalBackdrop} onPress={() => setProfileMenuVisible(false)} accessibilityLabel="Close profile menu" />
             <Animated.View style={[styles.profileMenu, { top: menuTop }, isDark && styles.darkMenu, isAttendance && styles.attendanceProfileMenu, popupStyle]}>
           <View style={styles.profileMenuHeader}>
             <ProfileAvatar uri={profileAvatarUri} name={user?.name} style={styles.menuAvatar} />

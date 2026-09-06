@@ -94,6 +94,10 @@ const CreateAdminAccountScreen = ({ navigation }) => {
         adminPassword: form.password,
         adminPasswordConfirmation: form.confirmPassword,
         logoUri: draft.logoUri || '',
+        workingDays: draft.workingDays || [1, 2, 3, 4, 5],
+        startTime: draft.startTime || '08:00',
+        endTime: draft.endTime || '17:00',
+        timezone: draft.timezone || 'UTC',
       });
 
       if (!result?.success) {

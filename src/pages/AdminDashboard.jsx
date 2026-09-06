@@ -30,6 +30,9 @@ import {
   FileText,
   Code2,
   LockKeyhole,
+  CheckCircle,
+  XCircle,
+  HelpCircle,
   Server,
   CheckCircle2,
   Sparkles,
@@ -1053,6 +1056,34 @@ const AdminDashboard = () => {
             AlertCircle
           }
           change="Unread"
+        />
+
+        <StatCard
+          title="Present today"
+          value={overview?.today_attendance?.present || 0}
+          icon={CheckCircle}
+          change="Today"
+        />
+
+        <StatCard
+          title="Late today"
+          value={overview?.today_attendance?.late || 0}
+          icon={Clock}
+          change="Today"
+        />
+
+        <StatCard
+          title="Absent today"
+          value={overview?.today_attendance?.absent || 0}
+          icon={XCircle}
+          change="Today"
+        />
+
+        <StatCard
+          title="Not yet marked"
+          value={overview?.today_attendance?.not_yet_marked || 0}
+          icon={HelpCircle}
+          change="Today"
         />
       </View>
 

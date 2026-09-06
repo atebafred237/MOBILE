@@ -12,11 +12,23 @@ import {
   Image,
 } from 'react-native';
 import { colors, spacing } from '../theme';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import AppSafeArea from '../components/AppSafeArea';
 import { getOrganizationDraft, saveOrganizationDraft } from '../services/organizationService';
 
 const validateEmail = value => /^\S+@\S+\.\S+$/.test(value.trim());
 
+const dayOptions = [
+  { value: 1, label: 'Monday' },
+  { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' },
+  { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' },
+  { value: 6, label: 'Saturday' },
+  { value: 7, label: 'Sunday' },
+];
+
+const formatTime = date => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 const OrganisationDetailsScreen = ({ navigation }) => {
   const [form, setForm] = useState({
     organisationName: '',
@@ -24,9 +36,14 @@ const OrganisationDetailsScreen = ({ navigation }) => {
     phone: '',
     location: '',
     logoUri: '',
+    workingDays: [1, 2, 3, 4, 5],
+    startTime: '08:00',
+    endTime: '17:00',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [timePicker, setTimePicker] = useState(null);
 
   useEffect(() => {
     const loadDraft = async () => {
@@ -38,6 +55,10 @@ const OrganisationDetailsScreen = ({ navigation }) => {
           phone: draft.phone || '',
           location: draft.location || '',
           logoUri: draft.logoUri || '',
+          workingDays: draft.workingDays || [1, 2, 3, 4, 5],
+          startTime: draft.startTime || '08:00',
+          endTime: draft.endTime || '17:00',
+          timezone: draft.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         });
       }
     };
@@ -109,6 +130,28 @@ const OrganisationDetailsScreen = ({ navigation }) => {
     }
   };
 
+  const toggleWorkingDay = day => {
+    setForm(current => ({
+      ...current,
+      workingDays: current.workingDays.includes(day)
+        ? current.workingDays.filter(value => value !== day)
+        : [...current.workingDays, day].sort((a, b) => a - b),
+    }));
+  };
+
+  const chooseTime = picker => {
+    setTimePicker(picker);
+  };
+
+  const handleTimeChange = async (event, date) => {
+    const picker = timePicker;
+    setTimePicker(null);
+    if (!date || event?.type === 'dismissed') return;
+
+    const value = formatTime(date);
+    setForm(current => ({ ...current, [picker === 'start' ? 'startTime' : 'endTime']: value }));
+  };
+
   return (
     <AppSafeArea style={styles.container}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -124,6 +167,30 @@ const OrganisationDetailsScreen = ({ navigation }) => {
           <TouchableOpacity style={styles.logoPicker} onPress={chooseLogo} activeOpacity={0.85}>
             {form.logoUri ? <Image source={{ uri: form.logoUri }} style={styles.logoPreview} /> : <Text style={styles.logoPickerText}>Add organisation logo</Text>}
           </TouchableOpacity>
+
+          <View style={styles.scheduleSection}>
+            <Text style={styles.sectionTitle}>Working hours</Text>
+            <Text style={styles.sectionSubtitle}>Choose the days and local hours used for attendance.</Text>
+            <View style={styles.daysGrid}>
+              {dayOptions.map(day => {
+                const selected = form.workingDays.includes(day.value);
+                return (
+                  <TouchableOpacity key={day.value} style={[styles.dayOption, selected && styles.dayOptionSelected]} onPress={() => toggleWorkingDay(day.value)} activeOpacity={0.8}>
+                    <Text style={[styles.dayOptionText, selected && styles.dayOptionTextSelected]}>{day.label.slice(0, 3)}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <View style={styles.timeRow}>
+              <TouchableOpacity style={styles.timeField} onPress={() => chooseTime('start')}>
+                <Text style={styles.timeLabel}>Start</Text><Text style={styles.timeValue}>{form.startTime}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.timeField} onPress={() => chooseTime('end')}>
+                <Text style={styles.timeLabel}>End</Text><Text style={styles.timeValue}>{form.endTime}</Text>
+              </TouchableOpacity>
+            </View>
+            {timePicker ? <DateTimePicker value={new Date(`1970-01-01T${timePicker === 'start' ? form.startTime : form.endTime}:00`)} mode="time" is24Hour display="default" onChange={handleTimeChange} /> : null}
+          </View>
 
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Organisation name</Text>
@@ -218,6 +285,18 @@ const styles = StyleSheet.create({
   logoPicker: { width: 92, height: 92, borderRadius: 46, borderWidth: 1, borderColor: colors.pink[300], backgroundColor: colors.pink[50], alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: spacing.xl, overflow: 'hidden' },
   logoPreview: { width: '100%', height: '100%' },
   logoPickerText: { color: colors.pink[900], fontSize: 11, fontWeight: '700', textAlign: 'center', paddingHorizontal: 8 },
+  scheduleSection: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate[200], borderRadius: 14, padding: spacing.md, marginBottom: spacing.lg },
+  sectionTitle: { color: colors.slate[900], fontSize: 17, fontWeight: '800', marginBottom: 4 },
+  sectionSubtitle: { color: colors.slate[500], fontSize: 12, lineHeight: 18, marginBottom: spacing.md },
+  daysGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  dayOption: { minWidth: 42, height: 36, borderWidth: 1, borderColor: colors.slate[300], borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xs },
+  dayOptionSelected: { backgroundColor: colors.pink[800], borderColor: colors.pink[800] },
+  dayOptionText: { color: colors.slate[600], fontSize: 12, fontWeight: '700' },
+  dayOptionTextSelected: { color: colors.white },
+  timeRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
+  timeField: { flex: 1, borderWidth: 1, borderColor: colors.slate[300], borderRadius: 10, padding: spacing.sm },
+  timeLabel: { color: colors.slate[500], fontSize: 11, fontWeight: '700' },
+  timeValue: { color: colors.slate[900], fontSize: 17, fontWeight: '800', marginTop: 3 },
 });
 
 export default OrganisationDetailsScreen;

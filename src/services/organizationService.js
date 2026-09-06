@@ -70,6 +70,10 @@ export const createOrganization = async (organizationData) => {
     admin_email: (organizationData.adminEmail || '').trim(),
     admin_password: organizationData.adminPassword || '',
     admin_password_confirmation: organizationData.adminPasswordConfirmation || organizationData.adminPassword || '',
+    working_days: organizationData.workingDays || [1, 2, 3, 4, 5],
+    start_time: organizationData.startTime || '08:00',
+    end_time: organizationData.endTime || '17:00',
+    timezone: organizationData.timezone || 'UTC',
   };
 
   try {

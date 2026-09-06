@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Animated, Easing, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { Activity, ArrowLeft, Bell, Bot, CheckCircle2, ChevronRight, FileText, Languages, LifeBuoy, LogOut, Moon, RefreshCw, Search, Send, Server, ShieldCheck, ShieldHalf, Sun, Trash2, UserRound } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Activity, ArrowLeft, Bell, Bot, CheckCircle2, ChevronRight, Clock, FileText, Languages, LifeBuoy, LogOut, Moon, RefreshCw, Search, Send, Server, ShieldCheck, ShieldHalf, Sun, Trash2, UserRound } from 'lucide-react-native';
 import { colors, spacing } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -14,6 +15,7 @@ import EmployeeProfile from './EmployeeProfile';
 const SETTINGS_OPTIONS = [
 	{ key: 'reports', title: 'Reports', description: 'Review, export, and manage attendance reports.', icon: FileText, color: colors.pink[800], background: colors.pink[50] },
 	{ key: 'notifications', title: 'Notifications', description: 'Control alerts and attendance activity updates.', icon: Bell, color: colors.orange[600], background: colors.orange[50] },
+	{ key: 'attendance-rules', title: 'Working Hours', description: 'Configure working days, start time, end time, and timezone.', icon: Clock, color: colors.green[600], background: colors.green[50] },
 	{ key: 'account', title: 'Account', description: 'Manage your profile, login, and account preferences.', icon: UserRound, color: colors.primary[600], background: colors.primary[50] },
 	{ key: 'language', title: 'Language', description: 'Choose the language used throughout the app.', icon: Languages, color: colors.pink[800], background: colors.pink[50] },
 	{ key: 'theme', title: 'Theme', description: 'Choose how Presenza looks on your device.', icon: Sun, color: colors.orange[600], background: colors.orange[50] },
@@ -209,7 +211,61 @@ const Settings = () => {
 	const [supportInput, setSupportInput] = useState('');
 	const [supportMessages, setSupportMessages] = useState(DEFAULT_SUPPORT_MESSAGES);
 	const [supportLoading, setSupportLoading] = useState(false);
+	const [workingHours, setWorkingHours] = useState(null);
+	const [workingHoursLoading, setWorkingHoursLoading] = useState(false);
+	const [workingHoursSaving, setWorkingHoursSaving] = useState(false);
+	const [workingHoursPicker, setWorkingHoursPicker] = useState(null);
 	const supportStorageKey = `${SUPPORT_CHAT_STORAGE_KEY}_${user?.id || 'guest'}`;
+	const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+	const loadWorkingHours = async () => {
+		if (!user?.token) return;
+		setWorkingHoursLoading(true);
+		try {
+			const response = await fetch(`${API_BASE_URL}/organization/working-hours`, {
+				headers: { Authorization: `Bearer ${user.token}`, Accept: 'application/json' },
+			});
+			const payload = await response.json();
+			if (!response.ok) throw new Error(payload.message || 'Unable to load working hours.');
+			const rows = payload.data?.working_hours || [];
+			const firstWorking = rows.find(row => row.is_working_day) || rows[0] || {};
+			setWorkingHours({
+				timezone: payload.data?.timezone || 'UTC',
+				workingDays: rows.filter(row => row.is_working_day).map(row => Number(row.day_of_week)),
+				startTime: String(firstWorking.start_time || '08:00').slice(0, 5),
+				endTime: String(firstWorking.end_time || '17:00').slice(0, 5),
+			});
+		} catch (error) {
+			Alert.alert('Working hours', error.message || 'Unable to load working hours.');
+		} finally {
+			setWorkingHoursLoading(false);
+		}
+	};
+
+	const saveWorkingHours = async () => {
+		if (!user?.token || !workingHours) return;
+		setWorkingHoursSaving(true);
+		try {
+			const response = await fetch(`${API_BASE_URL}/organization/working-hours`, {
+				method: 'PUT',
+				headers: { Authorization: `Bearer ${user.token}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					working_days: workingHours.workingDays,
+					start_time: workingHours.startTime,
+					end_time: workingHours.endTime,
+					timezone: workingHours.timezone,
+				}),
+			});
+			const payload = await response.json();
+			if (!response.ok) throw new Error(payload.message || 'Unable to save working hours.');
+			Alert.alert('Saved', 'Working hours updated successfully.');
+			await loadWorkingHours();
+		} catch (error) {
+			Alert.alert('Working hours', error.message || 'Unable to save working hours.');
+		} finally {
+			setWorkingHoursSaving(false);
+		}
+	};
 
 	useEffect(() => {
 		let isMounted = true;
@@ -272,6 +328,12 @@ const Settings = () => {
 		if (route.params?.notification) setSelectedNotification(route.params.notification);
 		if (route.params?.section) setSelectedKey(route.params.section);
 	}, [route.params?.notification, route.params?.section, route.params?.notificationRequest, route.params?.notificationListRequest, route.params?.resetRequest]);
+
+	useEffect(() => {
+		if (selectedKey === 'attendance-rules' && user?.role === 'admin') {
+			loadWorkingHours();
+		}
+	}, [selectedKey, user?.role]);
 
 	if (selectedNotification) {
 		return (
@@ -542,6 +604,28 @@ const Settings = () => {
 		if (selectedOption.key === 'account') {
 			return <EmployeeProfile onBack={() => setSelectedKey(null)} />;
 		}
+		if (selectedOption.key === 'attendance-rules') {
+			const timeToDate = value => new Date(`1970-01-01T${value || '08:00'}:00`);
+			return (
+				<Animated.ScrollView style={[styles.container, isDark && styles.darkContainer, screenStyle]} contentContainerStyle={styles.content}>
+					<TouchableOpacity style={styles.backButton} onPress={() => setSelectedKey(null)}><ArrowLeft size={18} color={colors.slate[700]} /><Text style={styles.backText}>Settings</Text></TouchableOpacity>
+					<View style={styles.workingHoursCard}>
+						<View style={styles.workingHoursHeader}><View style={styles.detailIconSmall}><Clock size={22} color={colors.green[600]} /></View><View style={styles.workingHoursHeaderCopy}><Text style={styles.detailTitle}>Working Hours</Text><Text style={styles.detailDescription}>These organization settings control late and absence tracking.</Text></View></View>
+						{workingHoursLoading || !workingHours ? <Text style={styles.workingHoursLoading}>Loading working hours...</Text> : <>
+							<Text style={styles.workingHoursLabel}>Working days</Text>
+							<View style={styles.workingDaysRow}>{dayLabels.map((label, index) => { const day = index + 1; const selected = workingHours.workingDays.includes(day); return <TouchableOpacity key={day} style={[styles.workingDayButton, selected && styles.workingDayButtonActive]} onPress={() => setWorkingHours(current => ({ ...current, workingDays: selected ? current.workingDays.filter(value => value !== day) : [...current.workingDays, day].sort((a, b) => a - b) }))}><Text style={[styles.workingDayText, selected && styles.workingDayTextActive]}>{label}</Text></TouchableOpacity>; })}</View>
+							<View style={styles.workingTimeRow}>
+								<TouchableOpacity style={styles.workingTimeButton} onPress={() => setWorkingHoursPicker('start')}><Text style={styles.workingHoursLabel}>Start time</Text><Text style={styles.workingTimeValue}>{workingHours.startTime}</Text></TouchableOpacity>
+								<TouchableOpacity style={styles.workingTimeButton} onPress={() => setWorkingHoursPicker('end')}><Text style={styles.workingHoursLabel}>End time</Text><Text style={styles.workingTimeValue}>{workingHours.endTime}</Text></TouchableOpacity>
+							</View>
+							<Text style={styles.workingTimezone}>Timezone: {workingHours.timezone}</Text>
+							{workingHoursPicker ? <DateTimePicker value={timeToDate(workingHours[workingHoursPicker === 'start' ? 'startTime' : 'endTime'])} mode="time" is24Hour display="default" onChange={(event, date) => { const picker = workingHoursPicker; setWorkingHoursPicker(null); if (date && event?.type !== 'dismissed') { const value = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }); setWorkingHours(current => ({ ...current, [picker === 'start' ? 'startTime' : 'endTime']: value })); } }} /> : null}
+							<TouchableOpacity style={[styles.saveWorkingHoursButton, workingHoursSaving && styles.disabledButton]} onPress={saveWorkingHours} disabled={workingHoursSaving}><Text style={styles.saveWorkingHoursText}>{workingHoursSaving ? 'Saving...' : 'Save working hours'}</Text></TouchableOpacity>
+						</>}
+					</View>
+				</Animated.ScrollView>
+			);
+		}
 		if (selectedOption.key === 'system-health') {
 			const services = [
 				['Attendance services', 'Operational', '42 ms'],
@@ -696,7 +780,7 @@ const Settings = () => {
 					return (
 						<TouchableOpacity key={option.key} style={styles.optionRow} onPress={() => setSelectedKey(option.key)}>
 							<View style={[styles.optionIcon, { backgroundColor: option.background }]}><Icon size={18} color={option.color} /></View>
-							<View style={styles.optionCopy}><Text style={styles.optionTitle}>{t(option.key === 'system-health' ? 'systemHealth' : option.key === 'privacy-policy' ? 'privacyPolicy' : option.key)}</Text><Text style={styles.optionDescription}>{option.description}</Text></View>
+							<View style={styles.optionCopy}><Text style={styles.optionTitle}>{option.key === 'attendance-rules' ? option.title : t(option.key === 'system-health' ? 'systemHealth' : option.key === 'privacy-policy' ? 'privacyPolicy' : option.key)}</Text><Text style={styles.optionDescription}>{option.description}</Text></View>
 							<ChevronRight size={18} color={colors.slate[400]} />
 						</TouchableOpacity>
 					);
@@ -759,6 +843,24 @@ const styles = StyleSheet.create({
 	detailStatusText: { color: colors.slate[800], fontSize: 13, fontWeight: '700' },
 	detailStatusMuted: { color: colors.slate[500], fontSize: 12, marginTop: 4 },
 	healthHero: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.green[50], borderWidth: 1, borderColor: colors.green[200], borderRadius: 12, padding: spacing.lg },
+	workingHoursCard: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate[200], borderRadius: 12, padding: spacing.lg },
+	workingHoursHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
+	detailIconSmall: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.green[50] },
+	workingHoursHeaderCopy: { flex: 1, marginLeft: spacing.sm },
+	workingHoursLoading: { color: colors.slate[500], textAlign: 'center', paddingVertical: spacing.xl },
+	workingHoursLabel: { color: colors.slate[700], fontSize: 13, fontWeight: '700', marginBottom: spacing.sm },
+	workingDaysRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.lg },
+	workingDayButton: { minWidth: 42, height: 36, borderWidth: 1, borderColor: colors.slate[300], borderRadius: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xs },
+	workingDayButtonActive: { backgroundColor: colors.green[600], borderColor: colors.green[600] },
+	workingDayText: { color: colors.slate[600], fontSize: 12, fontWeight: '700' },
+	workingDayTextActive: { color: colors.white },
+	workingTimeRow: { flexDirection: 'row', gap: spacing.sm },
+	workingTimeButton: { flex: 1, borderWidth: 1, borderColor: colors.slate[300], borderRadius: 9, padding: spacing.sm },
+	workingTimeValue: { color: colors.slate[900], fontSize: 18, fontWeight: '800' },
+	workingTimezone: { color: colors.slate[500], fontSize: 12, marginTop: spacing.md },
+	saveWorkingHoursButton: { backgroundColor: colors.green[600], borderRadius: 9, alignItems: 'center', paddingVertical: spacing.md, marginTop: spacing.lg },
+	saveWorkingHoursText: { color: colors.white, fontSize: 14, fontWeight: '700' },
+	disabledButton: { opacity: 0.65 },
 	healthIcon: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white },
 	healthHeroCopy: { flex: 1, marginLeft: spacing.md },
 	healthTitle: { color: colors.green[700], fontSize: 19, fontWeight: '700' },
