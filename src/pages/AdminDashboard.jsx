@@ -997,6 +997,26 @@ const AdminDashboard = () => {
         </View>
       </View>
 
+      {overview?.trial_expires_at ? (
+        <View style={styles.trialStatusCard}>
+          <View style={styles.trialStatusIcon}>
+            <Clock size={20} color={colors.white} />
+          </View>
+          <View style={styles.trialStatusCopy}>
+            <Text style={styles.trialStatusTitle}>Free trial</Text>
+            <Text style={styles.trialStatusMessage}>
+              {overview.trial_days_remaining > 0
+                ? `${overview.trial_days_remaining} ${overview.trial_days_remaining === 1 ? 'day' : 'days'} remaining`
+                : 'Your free trial has expired'}
+            </Text>
+            <Text style={styles.trialStatusExpiry}>Expires {overview.trial_expires_at}</Text>
+          </View>
+          <View style={styles.trialStatusBadge}>
+            <Text style={styles.trialStatusBadgeText}>30 DAYS</Text>
+          </View>
+        </View>
+      ) : null}
+
       {/* METRICS */}
 
       <View
@@ -2433,6 +2453,35 @@ const styles = StyleSheet.create({
       'space-between',
     padding: spacing.md,
   },
+
+  trialStatusCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+    padding: spacing.md,
+    borderRadius: 14,
+    backgroundColor: colors.pink[50],
+    borderWidth: 1,
+    borderColor: colors.pink[100],
+  },
+
+  trialStatusIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.pink[800],
+    marginRight: spacing.sm,
+  },
+
+  trialStatusCopy: { flex: 1 },
+  trialStatusTitle: { color: colors.pink[900], fontSize: 14, fontWeight: '800' },
+  trialStatusMessage: { color: colors.slate[900], fontSize: 15, fontWeight: '800', marginTop: 2 },
+  trialStatusExpiry: { color: colors.slate[600], fontSize: 12, marginTop: 2 },
+  trialStatusBadge: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: 999, backgroundColor: colors.white },
+  trialStatusBadgeText: { color: colors.pink[900], fontSize: 10, fontWeight: '800', letterSpacing: 0.6 },
 
   dailyStatsSection: {
     marginHorizontal: spacing.md,

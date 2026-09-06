@@ -2,13 +2,14 @@ import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme';
+import AppSafeArea from '../components/AppSafeArea';
 
 const OnboardingThree = ({ navigation }) => {
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   
   return (
-    <View style={styles.container}>
+    <AppSafeArea style={styles.container}>
       <View style={[styles.imageContainer, { height: height * 0.55 }]}>
         <Image
           source={require('../../assets/scan3.png')}
@@ -39,7 +40,7 @@ const OnboardingThree = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </AppSafeArea>
   );
 };
 

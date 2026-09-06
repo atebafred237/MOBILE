@@ -145,6 +145,7 @@ export const createOrganization = async (organizationData) => {
       admin,
       createdAt: new Date().toISOString(),
     });
+    await clearOrganizationDraft();
 
     return {
       success: true,

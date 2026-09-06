@@ -4,19 +4,29 @@ import { ArrowRight, CheckCircle2, CreditCard, Sparkles } from 'lucide-react-nat
 import { colors, spacing } from '../theme';
 import AppSafeArea from '../components/AppSafeArea';
 
-const AccessOptions = ({ navigation }) => (
-  <AppSafeArea style={styles.container}>
+const AccessOptions = ({ navigation }) => {
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.navigate('EnvironmentSelection');
+  };
+
+  return (
+    <AppSafeArea style={styles.container}>
     <View style={styles.content}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+      <TouchableOpacity onPress={handleBack} style={styles.backButton}>
         <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
       <Text style={styles.eyebrow}>IT COMPANY</Text>
       <Text style={styles.title}>Get started with Presenza</Text>
       <Text style={styles.subtitle}>Choose how you'd like to use Presenza for your company.</Text>
       <View style={styles.options}>
-        <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('OrganisationTypeScreen')} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('OrganisationDetailsScreen')} activeOpacity={0.85}>
           <View style={[styles.iconWrap, styles.trialIcon]}><Sparkles size={24} color={colors.pink[900]} /></View>
-          <View style={styles.copy}><Text style={styles.optionTitle}>Try for Free</Text><Text style={styles.optionDescription}>Experience Presenza and explore smart attendance management before subscribing.</Text></View>
+          <View style={styles.copy}><Text style={styles.optionTitle}>Try your 30 days free trial</Text><Text style={styles.optionDescription}>Experience Presenza and explore smart attendance management before subscribing.</Text></View>
           <ArrowRight size={20} color={colors.pink[900]} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('PricingPlans')} activeOpacity={0.85}>
@@ -30,8 +40,9 @@ const AccessOptions = ({ navigation }) => (
       </TouchableOpacity>
       <View style={styles.note}><CheckCircle2 size={18} color={colors.green[600]} /><Text style={styles.noteText}>Your existing company login remains the same.</Text></View>
     </View>
-  </AppSafeArea>
-);
+    </AppSafeArea>
+  );
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate[50] },

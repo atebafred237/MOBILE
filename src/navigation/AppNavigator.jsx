@@ -24,7 +24,6 @@ import EnvironmentSelection from '../pages/EnvironmentSelection';
 import AccessOptions from '../pages/AccessOptions';
 import PricingPlans from '../pages/PricingPlans';
 import CompanySetup from '../pages/CompanySetup';
-import OrganisationTypeScreen from '../pages/OrganisationTypeScreen';
 import OrganisationDetailsScreen from '../pages/OrganisationDetailsScreen';
 import CreateAdminAccountScreen from '../pages/CreateAdminAccountScreen';
 import OrganisationCreatedScreen from '../pages/OrganisationCreatedScreen';
@@ -227,7 +226,6 @@ const AppNavigator = () => {
             <Stack.Screen name="AccessOptions" component={AccessOptions} />
             <Stack.Screen name="PricingPlans" component={PricingPlans} />
             <Stack.Screen name="CompanySetup" component={CompanySetup} />
-            <Stack.Screen name="OrganisationTypeScreen" component={OrganisationTypeScreen} />
             <Stack.Screen name="OrganisationDetailsScreen" component={OrganisationDetailsScreen} />
             <Stack.Screen name="CreateAdminAccountScreen" component={CreateAdminAccountScreen} />
             <Stack.Screen name="OrganisationCreatedScreen" component={OrganisationCreatedScreen} />

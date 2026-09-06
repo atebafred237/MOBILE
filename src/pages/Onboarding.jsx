@@ -1,7 +1,8 @@
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme';
+import AppSafeArea from '../components/AppSafeArea';
 
 const Onboarding = ({ navigation }) => {
   const { width, height } = useWindowDimensions();
@@ -11,7 +12,7 @@ const Onboarding = ({ navigation }) => {
   const openSignIn = () => navigation.navigate('EnvironmentSelection');
 
   return (
-    <View style={styles.container}>
+    <AppSafeArea style={styles.container}>
       <View style={[styles.imageContainer, { height: height * 0.55 }]}>
         <Image
           source={require('../../assets/scan1-transparent.png')}
@@ -42,7 +43,7 @@ const Onboarding = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </AppSafeArea>
   );
 };
 
