@@ -2,11 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Bell, LifeBuoy, LogOut, Settings, User } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, getProfileAvatarUri } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme';
 import { useTheme } from '../context/ThemeContext';
+import ProfileAvatar from './ProfileAvatar';
 
 const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
   const { user, logout } = useAuth();
@@ -23,6 +24,7 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
   const unreadCount = notifications.filter(notification => !notification.read).length;
   const markNotificationRead = user?.role === 'admin' ? markAdminNotifRead : markEmpNotifRead;
   const menuTop = 100 + insets.top;
+  const profileAvatarUri = getProfileAvatarUri(user, user?.name || user?.email || 'User');
 
   useEffect(() => {
     const popupVisible = notificationsVisible || profileMenuVisible;
@@ -58,7 +60,7 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
           {unreadCount > 0 && <View style={styles.notificationBadge}><Text style={styles.notificationCount}>{unreadCount}</Text></View>}
         </TouchableOpacity>
         <TouchableOpacity style={styles.profileButton} onPress={() => { setProfileMenuVisible(value => !value); setNotificationsVisible(false); }} accessibilityLabel="Open profile menu">
-          <Image source={{ uri: user?.avatar || 'https://i.pravatar.cc/150?u=admin' }} style={styles.profileAvatar} />
+          <ProfileAvatar uri={profileAvatarUri} name={user?.name} style={styles.profileAvatar} />
         </TouchableOpacity>
       </View>
       {notificationsVisible && (
@@ -93,8 +95,8 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
             <TouchableOpacity style={styles.modalBackdrop} onPress={() => setProfileMenuVisible(false)} accessibilityLabel="Close profile menu" />
             <Animated.View style={[styles.profileMenu, { top: menuTop }, isDark && styles.darkMenu, isAttendance && styles.attendanceProfileMenu, popupStyle]}>
           <View style={styles.profileMenuHeader}>
-            <Image source={{ uri: user?.avatar || 'https://i.pravatar.cc/150?u=admin' }} style={styles.menuAvatar} />
-            <View><Text style={styles.menuTitle}>System Administrator</Text><Text style={styles.menuEmail}>{user?.email || 'admin@example.com'}</Text></View>
+            <ProfileAvatar uri={profileAvatarUri} name={user?.name} style={styles.menuAvatar} />
+            <View><Text style={styles.menuTitle}>{user?.name || 'User Profile'}</Text><Text style={styles.menuEmail}>{user?.email || 'user@example.com'}</Text></View>
           </View>
           <View style={styles.menuDivider} />
           <TouchableOpacity style={styles.menuItem} onPress={() => handleNavigate(user?.role === 'employee' ? 'EmployeeProfile' : settingsRoute, user?.role === 'admin' ? { section: 'account' } : undefined)}>
