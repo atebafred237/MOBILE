@@ -34,7 +34,7 @@ const OnboardingThree = ({ navigation }) => {
           <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.goBack()} activeOpacity={0.85}>
             <Text style={styles.secondaryButtonText}>Back</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('SignIn')} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('EnvironmentSelection')} activeOpacity={0.85}>
             <Text style={styles.primaryButtonText}>Login</Text>
           </TouchableOpacity>
         </View>

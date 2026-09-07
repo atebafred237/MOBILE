@@ -3,6 +3,7 @@ import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react
 import { useNavigation } from '@react-navigation/native';
 import { colors, spacing } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import AppSafeArea from '../components/AppSafeArea';
 
 const CONFETTI = [
   { left: '8%', delay: 0, color: colors.pink[800], size: 12, rotate: '20deg' },
@@ -63,7 +64,7 @@ const PasswordSuccess = () => {
   const { t } = useLanguage();
 
   return (
-    <View style={styles.container}>
+    <AppSafeArea style={styles.container}>
       <View pointerEvents="none" style={styles.confettiLayer}>
         {CONFETTI.map(piece => <FallingConfetti key={piece.left} {...piece} />)}
       </View>
@@ -91,7 +92,7 @@ const PasswordSuccess = () => {
           <Text style={styles.buttonText}>{t('continueSignIn')}</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </AppSafeArea>
   );
 };
 

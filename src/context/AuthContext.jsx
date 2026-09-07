@@ -7,12 +7,16 @@ const AuthContext = createContext();
 const TOKEN_KEY = 'presencehub_token';
 const USER_KEY  = 'Presenza_user';
 const ONBOARDED_KEY = 'Presenza_onboarded';
+const ENVIRONMENT_KEY = 'Presenza_environment';
+const SUBSCRIPTION_KEY = 'Presenza_subscription';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser]       = useState(null);
   const [token, setToken]     = useState(null);
   const [loading, setLoading] = useState(true);
   const [hasOnboarded, setHasOnboarded] = useState(false);
+  const [environment, setEnvironment] = useState(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
 
   /* ─── On mount: restore token and verify with API ─── */
   useEffect(() => {
@@ -20,6 +24,11 @@ export const AuthProvider = ({ children }) => {
       try {
         const onboarded = await AsyncStorage.getItem(ONBOARDED_KEY);
         if (onboarded) setHasOnboarded(true);
+
+        const savedEnvironment = await AsyncStorage.getItem(ENVIRONMENT_KEY);
+        const savedSubscription = await AsyncStorage.getItem(SUBSCRIPTION_KEY);
+        if (savedEnvironment) setEnvironment(savedEnvironment);
+        if (savedSubscription) setSubscriptionStatus(savedSubscription);
 
         const savedToken = await AsyncStorage.getItem(TOKEN_KEY);
         const savedUser  = await AsyncStorage.getItem(USER_KEY);
@@ -63,6 +72,16 @@ export const AuthProvider = ({ children }) => {
   const completeOnboarding = async () => {
     setHasOnboarded(true);
     await AsyncStorage.setItem(ONBOARDED_KEY, 'true');
+  };
+
+  const selectEnvironment = async (nextEnvironment) => {
+    setEnvironment(nextEnvironment);
+    await AsyncStorage.setItem(ENVIRONMENT_KEY, nextEnvironment);
+  };
+
+  const setCompanySubscription = async (nextStatus) => {
+    setSubscriptionStatus(nextStatus);
+    await AsyncStorage.setItem(SUBSCRIPTION_KEY, nextStatus);
   };
 
   /* ─── Login ─── */
@@ -189,7 +208,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, updateProfilePicture, updateProfile, loading, hasOnboarded, completeOnboarding }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateProfilePicture, updateProfile, loading, hasOnboarded, completeOnboarding, environment, selectEnvironment, subscriptionStatus, setCompanySubscription }}>
       {children}
     </AuthContext.Provider>
   );

@@ -14,6 +14,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { colors, spacing } from '../theme';
 import { useLanguage } from '../context/LanguageContext';
+import AppSafeArea from '../components/AppSafeArea';
 
 const ForgotPasswordEmail = () => {
   const navigation = useNavigation();
@@ -38,11 +39,12 @@ const ForgotPasswordEmail = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-    >
+    <AppSafeArea>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
       <Pressable style={styles.screen} onPress={Keyboard.dismiss}>
         <Image
           source={require('../../assets/new logo transparent.png')}
@@ -91,7 +93,8 @@ const ForgotPasswordEmail = () => {
           </TouchableOpacity>
         </View>
       </Pressable>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </AppSafeArea>
   );
 };
 

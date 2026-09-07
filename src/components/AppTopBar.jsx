@@ -22,6 +22,7 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
   const notifications = user?.role === 'admin' ? adminNotifs : empNotifs;
   const unreadCount = notifications.filter(notification => !notification.read).length;
   const markNotificationRead = user?.role === 'admin' ? markAdminNotifRead : markEmpNotifRead;
+  const menuTop = 100 + insets.top;
 
   useEffect(() => {
     const popupVisible = notificationsVisible || profileMenuVisible;
@@ -64,7 +65,7 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
           <Modal transparent visible onRequestClose={() => setNotificationsVisible(false)}>
           <View style={styles.modalLayer}>
             <TouchableOpacity style={styles.modalBackdrop} onPress={() => setNotificationsVisible(false)} accessibilityLabel="Close notifications" />
-            <Animated.View style={[styles.notificationsMenu, isDark && styles.darkMenu, popupStyle]}>
+            <Animated.View style={[styles.notificationsMenu, { top: menuTop }, isDark && styles.darkMenu, popupStyle]}>
               <View style={styles.notificationsHeader}>
                 <Text style={styles.notificationsTitle}>Notifications</Text>
                 <TouchableOpacity onPress={() => markNotificationRead('all')} accessibilityLabel="Mark all notifications as read">
@@ -90,7 +91,7 @@ const AppTopBar = ({ settingsRoute = 'AdminSettings' }) => {
         <Modal transparent visible onRequestClose={() => setProfileMenuVisible(false)}>
           <View style={styles.modalLayer}>
             <TouchableOpacity style={styles.modalBackdrop} onPress={() => setProfileMenuVisible(false)} accessibilityLabel="Close profile menu" />
-            <Animated.View style={[styles.profileMenu, isDark && styles.darkMenu, isAttendance && styles.attendanceProfileMenu, popupStyle]}>
+            <Animated.View style={[styles.profileMenu, { top: menuTop }, isDark && styles.darkMenu, isAttendance && styles.attendanceProfileMenu, popupStyle]}>
           <View style={styles.profileMenuHeader}>
             <Image source={{ uri: user?.avatar || 'https://i.pravatar.cc/150?u=admin' }} style={styles.menuAvatar} />
             <View><Text style={styles.menuTitle}>System Administrator</Text><Text style={styles.menuEmail}>{user?.email || 'admin@example.com'}</Text></View>
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
   notificationCount: { color: colors.white, fontSize: 10, fontWeight: 'bold' },
   modalLayer: { flex: 1 },
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15, 23, 42, 0.38)' },
-  notificationsMenu: { position: 'absolute', zIndex: 30, top: 90, right: 62, width: 300, maxHeight: 360, backgroundColor: colors.white, borderRadius: 10, borderWidth: 1, borderColor: colors.slate[200], paddingVertical: spacing.sm, shadowColor: colors.black, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 10, elevation: 8 },
+  notificationsMenu: { position: 'absolute', zIndex: 30, right: 62, width: 300, maxHeight: 360, backgroundColor: colors.white, borderRadius: 10, borderWidth: 1, borderColor: colors.slate[200], paddingVertical: spacing.sm, shadowColor: colors.black, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 10, elevation: 8 },
   darkMenu: { backgroundColor: colors.slate[800], borderColor: colors.slate[600] },
   notificationsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.slate[100] },
   notificationsTitle: { color: colors.slate[900], fontSize: 15, fontWeight: '700' },
@@ -145,8 +146,8 @@ const styles = StyleSheet.create({
   viewAllText: { color: colors.pink[800], fontSize: 12, fontWeight: '700' },
   profileButton: { borderRadius: 20, borderWidth: 2, borderColor: colors.white },
   profileAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.slate[200] },
-  profileMenu: { position: 'absolute', zIndex: 30, top: 94, right: spacing.md, width: 250, backgroundColor: colors.white, borderRadius: 10, borderWidth: 1, borderColor: colors.slate[200], paddingVertical: spacing.sm, shadowColor: colors.black, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 10, elevation: 8 },
-  attendanceProfileMenu: { top: 94 },
+  profileMenu: { position: 'absolute', zIndex: 30, right: spacing.md, width: 250, backgroundColor: colors.white, borderRadius: 10, borderWidth: 1, borderColor: colors.slate[200], paddingVertical: spacing.sm, shadowColor: colors.black, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 10, elevation: 8 },
+  attendanceProfileMenu: {},
   profileMenuHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.sm },
   menuAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.slate[200] },
   menuTitle: { fontSize: 14, fontWeight: '700', color: colors.slate[900] },

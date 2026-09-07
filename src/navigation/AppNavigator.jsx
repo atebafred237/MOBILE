@@ -19,6 +19,10 @@ import PasswordSuccess from '../pages/PasswordSuccess';
 import Onboarding from '../pages/Onboarding';
 import OnboardingTwo from '../pages/OnboardingTwo';
 import OnboardingThree from '../pages/OnboardingThree';
+import EnvironmentSelection from '../pages/EnvironmentSelection';
+import AccessOptions from '../pages/AccessOptions';
+import PricingPlans from '../pages/PricingPlans';
+import CompanySetup from '../pages/CompanySetup';
 import AdminDashboard from '../pages/AdminDashboard';
 import AdminEmployees from '../pages/AdminEmployees';
 import AdminAttendance from '../pages/AdminAttendance';
@@ -163,7 +167,7 @@ const EmployeeTabsContent = () => {
 };
 
 const AppNavigator = () => {
-  const { user, loading, hasOnboarded } = useAuth();
+  const { user, loading, hasOnboarded, environment } = useAuth();
 
   useEffect(() => {
     if (!loading && user) {
@@ -185,30 +189,27 @@ const AppNavigator = () => {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        screenOptions={{ headerShown: false }}
+        initialRouteName={!user ? (environment ? 'SignIn' : hasOnboarded ? 'EnvironmentSelection' : 'Onboarding') : undefined}
+      >
         {!user ? (
-          hasOnboarded ? (
-            <>
-              <Stack.Screen name="SignIn" component={SignIn} />
-              <Stack.Screen name="ForgotPasswordEmail" component={ForgotPasswordEmail} />
-              <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-              <Stack.Screen name="ResetPassword" component={ResetPassword} />
-              <Stack.Screen name="PasswordSuccess" component={PasswordSuccess} />
-            </>
-          ) : (
-            <>
-              <Stack.Group screenOptions={{ animation: 'none', gestureEnabled: true }}>
-                <Stack.Screen name="Onboarding" component={Onboarding} />
-                <Stack.Screen name="OnboardingTwo" component={OnboardingTwo} />
-                <Stack.Screen name="OnboardingThree" component={OnboardingThree} />
-              </Stack.Group>
-              <Stack.Screen name="SignIn" component={SignIn} />
-              <Stack.Screen name="ForgotPasswordEmail" component={ForgotPasswordEmail} />
-              <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-              <Stack.Screen name="ResetPassword" component={ResetPassword} />
-              <Stack.Screen name="PasswordSuccess" component={PasswordSuccess} />
-            </>
-          )
+          <>
+            <Stack.Group screenOptions={{ animation: 'none', gestureEnabled: true }}>
+              <Stack.Screen name="Onboarding" component={Onboarding} />
+              <Stack.Screen name="OnboardingTwo" component={OnboardingTwo} />
+              <Stack.Screen name="OnboardingThree" component={OnboardingThree} />
+              <Stack.Screen name="EnvironmentSelection" component={EnvironmentSelection} />
+            </Stack.Group>
+            <Stack.Screen name="AccessOptions" component={AccessOptions} />
+            <Stack.Screen name="PricingPlans" component={PricingPlans} />
+            <Stack.Screen name="CompanySetup" component={CompanySetup} />
+            <Stack.Screen name="SignIn" component={SignIn} />
+            <Stack.Screen name="ForgotPasswordEmail" component={ForgotPasswordEmail} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+            <Stack.Screen name="ResetPassword" component={ResetPassword} />
+            <Stack.Screen name="PasswordSuccess" component={PasswordSuccess} />
+          </>
         ) : user.role === 'admin' ? (
           <Stack.Screen name="AdminRoot" component={AdminTabs} />
         ) : user.role === 'kiosk' ? (

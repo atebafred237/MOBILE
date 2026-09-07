@@ -8,7 +8,7 @@ const Onboarding = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   
   const openOnboardingTwo = () => navigation.navigate('OnboardingTwo');
-  const openSignIn = () => navigation.navigate('SignIn');
+  const openSignIn = () => navigation.navigate('EnvironmentSelection');
 
   return (
     <View style={styles.container}>

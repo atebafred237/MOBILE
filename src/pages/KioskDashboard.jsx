@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Animated, SafeAreaView, KeyboardAvoidingView, Platform, Keyboard, ScrollView, Modal } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Animated, KeyboardAvoidingView, Platform, Keyboard, ScrollView, Modal } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { colors, spacing } from '../theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LogOut, CheckCircle, XCircle } from 'lucide-react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 
