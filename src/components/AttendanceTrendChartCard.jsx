@@ -59,6 +59,8 @@ const AttendanceTrendChartCard = ({ data = [], selectedPeriod = 'Week', onPeriod
     onPanResponderMove: event => selectPoint(event.nativeEvent.locationX, event.nativeEvent.locationY),
   });
 
+  const activeItem = data[activePoint] ?? null;
+
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -135,12 +137,12 @@ const AttendanceTrendChartCard = ({ data = [], selectedPeriod = 'Week', onPeriod
             <SvgText key={`label-${index}`} x={presentPoints[index]?.x || 0} y={CHART_HEIGHT - 8} fill="#64748b" fontSize="11" textAnchor="middle">{label}</SvgText>
           ))}
         </Svg>
-        {activePoint !== null && data[activePoint] ? (
+        {activeItem ? (
           <View style={[styles.tooltip, { left: tooltipPosition.x, top: tooltipPosition.y }]} pointerEvents="none">
-            <Text style={styles.tooltipDay}>{data[activePoint].label || data[activePoint].day}</Text>
-            <Text style={[styles.tooltipValue, styles.presentValue]}>Present: {data[activePoint].present}</Text>
-            <Text style={[styles.tooltipValue, styles.lateValue]}>Late: {data[activePoint].late}</Text>
-            <Text style={[styles.tooltipValue, styles.absentValue]}>Absent: {data[activePoint].absent}</Text>
+            <Text style={styles.tooltipDay}>{activeItem.label || activeItem.day || 'Unknown'}</Text>
+            <Text style={[styles.tooltipValue, styles.presentValue]}>Present: {Number(activeItem.present) || 0}</Text>
+            <Text style={[styles.tooltipValue, styles.lateValue]}>Late: {Number(activeItem.late) || 0}</Text>
+            <Text style={[styles.tooltipValue, styles.absentValue]}>Absent: {Number(activeItem.absent) || 0}</Text>
           </View>
         ) : null}
       </View>
