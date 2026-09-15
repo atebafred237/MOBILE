@@ -14,12 +14,16 @@ const getTrendData = (records, period) => {
   const data = labels.map(label => ({ label, present: 0, late: 0, absent: 0 }));
 
   records.forEach(record => {
-    const date = new Date(`${record.date}T00:00:00`);
+    if (!record || !record.date) return;
+
+    const parsedDate = new Date(`${record.date}T00:00:00`);
+    if (Number.isNaN(parsedDate.getTime())) return;
+
     const timeMatch = record.timestamp && record.timestamp !== '---' ? record.timestamp.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i) : null;
     let bucketIndex = 0;
 
     if (period === 'Month') {
-      bucketIndex = Math.min(Math.floor((date.getDate() - 1) / 7), 3);
+      bucketIndex = Math.min(Math.floor((parsedDate.getDate() - 1) / 7), 3);
     } else if (period === 'Day') {
       if (timeMatch) {
         let hour = Number(timeMatch[1]);
@@ -34,10 +38,10 @@ const getTrendData = (records, period) => {
         else bucketIndex = 4;
       }
     } else {
-      bucketIndex = (date.getDay() + 6) % 7;
+      bucketIndex = (parsedDate.getDay() + 6) % 7;
     }
 
-    if (bucketIndex < 0 || bucketIndex >= data.length) return;
+    if (!Number.isInteger(bucketIndex) || bucketIndex < 0 || bucketIndex >= data.length) return;
 
     if (record.status === 'Present') data[bucketIndex].present += 1;
     if (record.status === 'Late') data[bucketIndex].late += 1;

@@ -59,7 +59,7 @@ const AttendanceTrendChartCard = ({ data = [], selectedPeriod = 'Week', onPeriod
     onPanResponderMove: event => selectPoint(event.nativeEvent.locationX, event.nativeEvent.locationY),
   });
 
-  const activeItem = data[activePoint] ?? null;
+  const activeItem = Number.isInteger(activePoint) && activePoint >= 0 && activePoint < data.length ? data[activePoint] : null;
 
   return (
     <View style={styles.card}>

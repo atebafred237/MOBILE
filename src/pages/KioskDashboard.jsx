@@ -42,6 +42,8 @@ const KioskDashboard = () => {
 
   const [sessionId, setSessionId] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [captureStatus, setCaptureStatus] = useState('idle');
+  const [isVerificationInProgress, setIsVerificationInProgress] = useState(false);
 
   const [permission, requestPermission] = useCameraPermissions();
 
@@ -357,6 +359,11 @@ const KioskDashboard = () => {
     setPendingAction(null);
   };
 
+  const resetProcessingState = () => {
+    setCaptureStatus('idle');
+    setIsVerificationInProgress(false);
+  };
+
   const chooseAttendanceAction = (type) => {
     setPendingAction(type);
     confirmIdentity(type);
@@ -371,6 +378,20 @@ const KioskDashboard = () => {
     action,
     currentSessionId
   ) => {
+    if (isVerificationInProgress) {
+      return;
+    }
+
+    const verificationStart =
+      typeof performance !== 'undefined' && performance.now
+        ? performance.now()
+        : Date.now();
+
+    console.log('⏱️ Scan started');
+
+    setIsVerificationInProgress(true);
+    setCaptureStatus('capturing');
+
     let base64Face = null;
 
     try {
@@ -406,7 +427,19 @@ const KioskDashboard = () => {
 
       base64Face = photo.base64;
 
-      console.log('?? Face image Base64 length:', base64Face.length);
+      const photoCapturedElapsed = (
+        ((typeof performance !== 'undefined' && performance.now
+          ? performance.now()
+          : Date.now()) -
+          verificationStart) /
+        1000
+      ).toFixed(2);
+
+      console.log(`📸 Photo captured: ${photoCapturedElapsed}s`);
+
+      setCaptureStatus('captured');
+      setCaptureStatus('processing');
+      setIsVerificationInProgress(true);
 
       console.log(
         '✅ Camera image captured successfully'
@@ -417,6 +450,7 @@ const KioskDashboard = () => {
         error
       );
 
+      resetProcessingState();
       showFeedback(
         'error',
         'Unable to capture your face. Please make sure your face is visible and try again.',
@@ -431,6 +465,15 @@ const KioskDashboard = () => {
     // -------------------------------------------------------
 
     try {
+      const apiSendElapsed = (
+        ((typeof performance !== 'undefined' && performance.now
+          ? performance.now()
+          : Date.now()) -
+          verificationStart) /
+        1000
+      ).toFixed(2);
+
+      console.log(`📡 API request sent: ${apiSendElapsed}s`);
       console.log(
         '📡 Sending face image to Laravel...'
       );
@@ -445,7 +488,7 @@ const KioskDashboard = () => {
             ...(token
               ? {
                   Authorization: `Bearer ${token}`,
-                }
+                  }
               : {}),
           },
           body: JSON.stringify({
@@ -458,12 +501,34 @@ const KioskDashboard = () => {
 
       const json = await verifyRes.json();
 
+      const apiReceiveElapsed = (
+        ((typeof performance !== 'undefined' && performance.now
+          ? performance.now()
+          : Date.now()) -
+          verificationStart) /
+        1000
+      ).toFixed(2);
+
+      console.log(`📥 API response received: ${apiReceiveElapsed}s`);
       console.log(
         '📥 Attendance verification response:',
         json
       );
 
       if (verifyRes.ok && json.success) {
+        const attendanceMarkedElapsed = (
+          ((typeof performance !== 'undefined' && performance.now
+            ? performance.now()
+            : Date.now()) -
+            verificationStart) /
+          1000
+        ).toFixed(2);
+
+        console.log(`✅ Attendance marked: ${attendanceMarkedElapsed}s`);
+        console.log(
+          `⏱️ TOTAL ATTENDANCE VERIFICATION TIME: ${attendanceMarkedElapsed} seconds`
+        );
+
         const resultData = json.data;
 
         const isCheckOut =
@@ -480,20 +545,33 @@ const KioskDashboard = () => {
           : 'Present';
 
         refresh();
+        resetProcessingState();
 
         showFeedback(
           'success',
-          isCheckOut
-            ? 'Successfully checked out.'
-            : 'Successfully checked in.',
+          'Attendance marked successfully',
           emp,
-          formattedStatus
+          formattedStatus,
+          'ATTENDANCE_MARKED'
         );
       } else {
         const detailedError =
           json.message ||
           json.error_detail ||
           'Face verification failed: Biometrics mismatch.';
+
+        resetProcessingState();
+
+        if (json.code === 'FACE_MISMATCH') {
+          showFeedback(
+            'error',
+            'Face not recognized',
+            emp,
+            null,
+            'FACE_MISMATCH'
+          );
+          return;
+        }
 
         showFeedback(
           'error',
@@ -509,6 +587,7 @@ const KioskDashboard = () => {
         error
       );
 
+      resetProcessingState();
       showFeedback(
         'error',
         'Attendance verification error: Unable to connect to the attendance service. Please check the network connection.',
@@ -554,9 +633,20 @@ const KioskDashboard = () => {
     status = null,
     errorCode = null
   ) => {
+    resetProcessingState();
+
+    const finalMessage =
+      errorCode === 'FACE_MISMATCH'
+        ? 'Face not recognized'
+        : errorCode === 'ATTENDANCE_MARKED'
+        ? 'Attendance marked successfully'
+        : type === 'error'
+        ? getFriendlyKioskError(message, errorCode)
+        : message;
+
     setFeedback({
       type,
-      message: type === 'error' ? getFriendlyKioskError(message, errorCode) : message,
+      message: finalMessage,
       employee,
       status,
       errorCode,
@@ -568,7 +658,6 @@ const KioskDashboard = () => {
     setCurrentEmployee(null);
     setActionType(null);
     setSessionId(null);
-
   };
 
   // ---------------------------------------------------------
@@ -800,13 +889,27 @@ const KioskDashboard = () => {
               </View>
 
               <Text style={styles.scannerText}>
-                Authenticating{' '}
-                {currentEmployee.name}...
+                {isVerificationInProgress
+                  ? 'Loading your attendance...'
+                  : captureStatus === 'captured'
+                  ? 'Photo captured'
+                  : captureStatus === 'capturing'
+                  ? 'Capturing photo...'
+                  : `Authenticating ${currentEmployee.name}...`}
               </Text>
 
-              <Text style={styles.cameraStatusText}>
-                Keep your face inside the circle
-              </Text>
+              {isVerificationInProgress ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator size="small" color={colors.pink[800]} />
+                  <Text style={styles.processingText}>
+                    Processing your face verification...
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.cameraStatusText}>
+                  Keep your face inside the circle
+                </Text>
+              )}
             </View>
           ) : step === 'feedback' &&
             feedback ? (
@@ -1218,6 +1321,21 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     fontSize: 13,
     color: colors.slate[500],
+    textAlign: 'center',
+  },
+
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.sm,
+    gap: spacing.sm,
+  },
+
+  processingText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.pink[800],
     textAlign: 'center',
   },
 
