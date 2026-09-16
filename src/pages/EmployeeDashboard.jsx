@@ -143,6 +143,10 @@ const EmployeeDashboard = () => {
           <Text style={styles.primaryButtonText}>Open attendance</Text>
           <ChevronRight size={18} color={colors.white} />
         </TouchableOpacity>
+        <TouchableOpacity style={styles.salaryButton} onPress={() => navigation.navigate('EmployeeSalary')}>
+          <Text style={styles.salaryButtonText}>Open salary</Text>
+          <ChevronRight size={18} color={colors.pink[800]} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.summaryCard}>
@@ -346,6 +350,21 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
     color: '#ffffff',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  salaryButton: {
+    marginTop: spacing.sm,
+    borderRadius: 16,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#ffffff',
+  },
+  salaryButtonText: {
+    color: colors.pink[800],
+    fontSize: 14,
     fontWeight: '700',
   },
   summaryCard: {

@@ -7,7 +7,7 @@ import { ActivityIndicator, StyleSheet, TouchableOpacity, View, Image } from 're
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
-import { Bot, Home, Users, Calendar, Settings as SettingsIcon, Building2 } from 'lucide-react-native';
+import { Bot, Home, Users, Calendar, Settings as SettingsIcon, Building2, BarChart2, WalletCards } from 'lucide-react-native';
 import AppTopBar from '../components/AppTopBar';
 
 // Placeholder Screens
@@ -31,10 +31,12 @@ import OrganisationSetupScreen from '../pages/OrganisationSetupScreen';
 import AdminDashboard from '../pages/AdminDashboard';
 import AdminAttendance from '../pages/AdminAttendance';
 import AdminManagement from '../pages/AdminManagement';
+import AdminReports from '../pages/AdminReports';
 import Settings from '../pages/Settings';
 import EmployeeDashboard from '../pages/EmployeeDashboard';
 import EmployeeAttendance from '../pages/EmployeeAttendance';
 import EmployeeProfile from '../pages/EmployeeProfile';
+import EmployeeSalary from '../pages/EmployeeSalary';
 import KioskDashboard from '../pages/KioskDashboard';
 
 const Stack = createNativeStackNavigator();
@@ -73,10 +75,12 @@ const withEmployeeTopBar = Screen => props => (
 const AdminDashboardWithTopBar = withAdminTopBar(AdminDashboard);
 const AdminAttendanceWithTopBar = withAdminTopBar(AdminAttendance);
 const AdminManagementWithTopBar = withAdminTopBar(AdminManagement);
+const AdminReportsWithTopBar = withAdminTopBar(AdminReports);
 const AdminSettingsWithTopBar = withAdminTopBar(Settings);
 const EmployeeDashboardWithTopBar = withEmployeeTopBar(EmployeeDashboard);
 const EmployeeAttendanceWithTopBar = withEmployeeTopBar(EmployeeAttendance);
 const EmployeeProfileWithTopBar = withEmployeeTopBar(EmployeeProfile);
+const EmployeeSalaryWithTopBar = withEmployeeTopBar(EmployeeSalary);
 const EmployeeSettingsWithTopBar = withEmployeeTopBar(Settings);
 
 const AdminTabs = () => (
@@ -120,6 +124,14 @@ const AdminTabsContent = () => {
       options={{
         title: 'Manage',
         tabBarIcon: ({ color, size }) => <Building2 color={color} size={size} strokeWidth={2} />
+      }}
+    />
+    <Tab.Screen
+      name="AdminReports"
+      component={AdminReportsWithTopBar}
+      options={{
+        title: 'Reports',
+        tabBarIcon: ({ color, size }) => <BarChart2 color={color} size={size} strokeWidth={2} />
       }}
     />
     <Tab.Screen 
@@ -174,6 +186,14 @@ const EmployeeTabsContent = () => {
         title: t('profileTab'),
         tabBarIcon: ({ color, size }) => <Users color={color} size={size} strokeWidth={2} /> 
       }} 
+    />
+    <Tab.Screen
+      name="EmployeeSalary"
+      component={EmployeeSalaryWithTopBar}
+      options={{
+        title: 'My Salary',
+        tabBarIcon: ({ color, size }) => <WalletCards color={color} size={size} strokeWidth={2} />
+      }}
     />
     <Tab.Screen 
       name="EmployeeSettings" 
@@ -243,7 +263,9 @@ const AppNavigator = () => {
         ) : user.role === 'kiosk' ? (
           <Stack.Screen name="KioskRoot" component={KioskDashboard} />
         ) : (
-          <Stack.Screen name="EmployeeRoot" component={EmployeeTabs} />
+          <>
+            <Stack.Screen name="EmployeeRoot" component={EmployeeTabs} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

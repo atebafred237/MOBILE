@@ -13,18 +13,20 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Ban, Building2, Check, ChevronDown, Edit3, Mail, MessageCircle, Monitor, Plus, Trash2, Users, X } from 'lucide-react-native';
+import { Ban, Building2, Check, ChevronDown, DollarSign, Edit3, Mail, MessageCircle, Monitor, Plus, Trash2, Users, X } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { API_BASE_URL } from '../config';
+import AdminSalary from './AdminSalary';
 
 const DEPARTMENTS_KEY = 'presenza_admin_departments';
 const TABS = [
   { key: 'departments', label: 'Departments', icon: Building2 },
   { key: 'employees', label: 'Employees', icon: Users },
   { key: 'kiosks', label: 'Kiosks', icon: Monitor },
+  { key: 'salary', label: 'Salary Management', icon: DollarSign },
 ];
 
 const AdminManagement = () => {
@@ -323,7 +325,7 @@ const AdminManagement = () => {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
         {TABS.map(tab => { const Icon = tab.icon; return <TouchableOpacity key={tab.key} style={[styles.tab, activeTab === tab.key && styles.tabActive]} onPress={() => setActiveTab(tab.key)}><Icon size={16} color={activeTab === tab.key ? colors.white : colors.slate[600]} /><Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text></TouchableOpacity>; })}
       </ScrollView>
-      <ScrollView contentContainerStyle={styles.content}>{activeTab === 'departments' ? renderDepartments() : activeTab === 'employees' ? renderEmployees() : renderKiosks()}</ScrollView>
+      <ScrollView contentContainerStyle={styles.content}>{activeTab === 'departments' ? renderDepartments() : activeTab === 'employees' ? renderEmployees() : activeTab === 'kiosks' ? renderKiosks() : <AdminSalary />}</ScrollView>
 
       <Modal visible={!!selectedEmployee} transparent animationType="slide" onRequestClose={() => setSelectedEmployee(null)}>
         <View style={styles.detailOverlay}>
