@@ -143,7 +143,7 @@ const EmployeeDashboard = () => {
           <Text style={styles.primaryButtonText}>Open attendance</Text>
           <ChevronRight size={18} color={colors.white} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.salaryButton} onPress={() => navigation.navigate('EmployeeSalary')}>
+        <TouchableOpacity style={styles.salaryButton} onPress={() => navigation.jumpTo('EmployeeSalary')}>
           <Text style={styles.salaryButtonText}>Open salary</Text>
           <ChevronRight size={18} color={colors.pink[800]} />
         </TouchableOpacity>
